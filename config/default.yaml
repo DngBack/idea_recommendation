@@ -1,0 +1,38 @@
+# =============================================
+# Idea Generator – Default Configuration
+# =============================================
+# Override any of these via CLI flags, e.g.:
+#   idea-generator --topic-file topic.md --model gpt-4o --max-generations 10
+
+# LLM model to use for idea generation
+model: "gpt-4o-2024-05-13"
+
+# Maximum number of ideas to generate in one run
+max_generations: 20
+
+# Number of reflection / refinement rounds per idea
+num_reflections: 5
+
+# Directory for output files (relative to CWD)
+output_dir: "output"
+
+# Validate each idea against JSON schema before accepting it
+validate: true
+
+# Enable novelty scoring (uses an extra LLM call per idea)
+novelty_scoring: false
+
+# Model to use for novelty scoring (empty = same as `model`)
+novelty_model: ""
+
+# How often to write a checkpoint (every N ideas)
+checkpoint_interval: 1
+
+# Enable the arXiv search tool alongside Semantic Scholar
+arxiv_enabled: true
+
+# Resume from a previous checkpoint (set to true or use --resume flag)
+resume: false
+
+# Override the system prompt entirely (leave empty to use the built-in prompt)
+system_prompt_override: ""

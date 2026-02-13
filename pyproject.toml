@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "idea-generator"
+version = "0.1.0"
+description = "Standalone AI research idea generator inspired by AI Scientist v2"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+dependencies = [
+    "openai>=1.0.0",
+    "anthropic>=0.20.0",
+    "backoff>=2.2.0",
+    "requests>=2.31.0",
+    "pyyaml>=6.0",
+    "jsonschema>=4.20.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "ruff"]
+
+[project.scripts]
+idea-generator = "idea_generator.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["idea_generator*"]
