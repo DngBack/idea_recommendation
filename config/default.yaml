@@ -32,6 +32,12 @@ checkpoint_interval: 1
 # Enable the arXiv search tool alongside Semantic Scholar
 arxiv_enabled: true
 
+# Enable PubMed search (biology, medicine, NLP)
+pubmed_enabled: false
+
+# Enable OpenAlex search (broad coverage, DOI, citations)
+openalex_enabled: false
+
 # Resume from a previous checkpoint (set to true or use --resume flag)
 resume: false
 

@@ -46,7 +46,8 @@ The IDEA JSON should include the following fields:
 - "Name": A short descriptor of the idea. Lowercase, no spaces, underscores allowed.
 - "Title": A catchy and informative title for the proposal.
 - "Short Hypothesis": A concise statement of the main hypothesis or research question. Clarify the need for this specific direction, ensure this is the best setting to investigate this idea, and there are not obvious other simpler ways to answer the question.
-- "Related Work": A brief discussion of the most relevant related work and how the proposal clearly distinguishes from it, and is not a trivial extension.
+- "Related Work": A brief discussion of the most relevant related work and how the proposal clearly distinguishes from it, and is not a trivial extension. Cite sources using [Author (Year)] and ensure every cited work has a corresponding entry in "References".
+- "References": An array of citation objects, one for each source cited in Related Work. Each object must have "author", "year", "title", and optionally "url" or "doi". Use the exact CITE lines from the search tool results (SearchSemanticScholar, SearchArxiv, SearchPubMed, or SearchOpenAlex) to fill these fields.
 - "Abstract": An abstract that summarizes the proposal in conference format (approximately 250 words).
 - "Experiments": A list of experiments that would be conducted to validate the proposal. Ensure these are simple and feasible. Be specific in exactly how you would test the hypothesis, and detail precise algorithmic changes. Include the evaluation metrics you would use.
 - "Risk Factors and Limitations": A list of potential risks and limitations of the proposal.""",
@@ -73,7 +74,7 @@ ACTION:
 <The action to take, exactly one of {tool_names_str}>
 
 ARGUMENTS:
-<If ACTION is "SearchSemanticScholar", provide the search query as {{"query": "your search query"}}. If ACTION is "SearchArxiv", provide the search query as {{"query": "your search query"}}. If ACTION is "FinalizeIdea", provide the idea details as {{"idea": {{ ... }}}} with the IDEA JSON specified below.>
+<If ACTION is a search tool (SearchSemanticScholar, SearchArxiv, SearchPubMed, or SearchOpenAlex), provide the search query as {{"query": "your search query"}}. If ACTION is "FinalizeIdea", provide the idea details as {{"idea": {{ ... }}}} with the IDEA JSON specified below.>
 
 If you choose to finalize your idea, provide the IDEA JSON in the arguments:
 
@@ -85,6 +86,7 @@ IDEA JSON:
     "Title": "...",
     "Short Hypothesis": "...",
     "Related Work": "...",
+    "References": [{{ "author": "...", "year": "...", "title": "...", "url": "..." }}],
     "Abstract": "...",
     "Experiments": "...",
     "Risk Factors and Limitations": "..."
@@ -94,7 +96,7 @@ IDEA JSON:
 
 Ensure the JSON is properly formatted for automatic parsing.
 
-Note: You should perform at least one literature search (using SearchSemanticScholar or SearchArxiv) before finalizing your idea to ensure it is well-informed by existing research."""
+Before finalizing, you must have called at least one literature search (using any of the search tools). When writing Related Work, cite each source as [Author (Year)] and ensure every cited source appears in References with author, year, title, and url or doi."""
 
 
 # ---------------------------------------------------------------------------
@@ -133,4 +135,34 @@ VALIDATION_FIX_PROMPT = """The idea you just proposed has validation errors:
 {errors}
 
 Please fix the issues and finalize the idea again using the FinalizeIdea action. Make sure all required fields are present and correctly formatted.
+"""
+
+# ---------------------------------------------------------------------------
+# Hypothesis expansion (Phase 3)
+# ---------------------------------------------------------------------------
+
+HYPOTHESIS_EXPANSION_FROM_TOPIC = """Given the following research topic description, list distinct sub-hypotheses or theory variants that could be investigated independently. Each should be a concrete, researchable direction.
+
+Topic:
+{topic_text}
+
+Respond with a JSON array only (no markdown, no explanation). Each element must have:
+- "Name": short lowercase identifier with underscores (e.g. "adaptive_damping_ablation")
+- "Short Hypothesis": one or two sentences stating the hypothesis or research question
+
+Generate between 5 and {max_sub} items. Output format:
+[{{"Name": "...", "Short Hypothesis": "..."}}, ...]
+"""
+
+HYPOTHESIS_EXPANSION_FROM_IDEA = """Given the following research idea, list distinct sub-hypotheses or theory variants that could be investigated independently. Each should be a concrete, researchable direction derived from or orthogonal to this idea.
+
+Idea (Title): {title}
+Short Hypothesis: {short_hypothesis}
+
+Respond with a JSON array only (no markdown, no explanation). Each element must have:
+- "Name": short lowercase identifier with underscores
+- "Short Hypothesis": one or two sentences stating the hypothesis or research question
+
+Generate between 5 and {max_sub} items. Output format:
+[{{"Name": "...", "Short Hypothesis": "..."}}, ...]
 """

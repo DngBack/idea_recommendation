@@ -26,6 +26,8 @@ from .prompts import (
 from .tools.base import BaseTool
 from .tools.semantic_scholar import SemanticScholarSearchTool
 from .tools.arxiv import ArxivSearchTool
+from .tools.pubmed import PubMedSearchTool
+from .tools.openalex import OpenAlexSearchTool
 from .validators import validate_idea
 from .utils.checkpoint import load_checkpoint, save_checkpoint
 
@@ -49,6 +51,8 @@ class IdeaGeneratorConfig:
     novelty_model: str = ""  # defaults to same as model if empty
     checkpoint_interval: int = 1
     arxiv_enabled: bool = True
+    pubmed_enabled: bool = False
+    openalex_enabled: bool = False
     resume: bool = False
     # Allow overriding the system prompt entirely (empty = use default)
     system_prompt_override: str = ""
@@ -95,6 +99,10 @@ def generate_ideas(
     tools: list = [SemanticScholarSearchTool()]
     if config.arxiv_enabled:
         tools.append(ArxivSearchTool())
+    if config.pubmed_enabled:
+        tools.append(PubMedSearchTool())
+    if config.openalex_enabled:
+        tools.append(OpenAlexSearchTool())
     tools.append(FINALIZE_IDEA_TOOL)
 
     tools_dict: Dict[str, BaseTool] = {

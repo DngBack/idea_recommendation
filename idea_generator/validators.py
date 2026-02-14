@@ -65,6 +65,21 @@ IDEA_SCHEMA = {
                 },
             ],
         },
+        "References": {
+            "type": "array",
+            "description": "Structured citations: each source cited in Related Work must have an entry here.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "author": {"type": "string"},
+                    "year": {"type": "string"},
+                    "title": {"type": "string"},
+                    "url": {"type": "string"},
+                    "doi": {"type": "string"},
+                },
+                "required": ["author", "year", "title"],
+            },
+        },
     },
     "required": [
         "Name",

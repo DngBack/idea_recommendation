@@ -109,12 +109,20 @@ class ArxivSearchTool(BaseTool):
             year = published_el.text[:4] if published_el is not None and published_el.text else "N/A"
             url = link_el.text.strip() if link_el is not None and link_el.text else ""
 
+            doi = ""
+            for link in entry.findall(f"{ATOM_NS}link"):
+                href = link.get("href") or ""
+                if "doi.org" in href:
+                    doi = href
+                    break
+
             papers.append({
                 "title": title,
                 "authors": authors,
                 "year": year,
                 "abstract": abstract,
                 "url": url,
+                "doi": doi or None,
             })
         return papers if papers else None
 
@@ -123,10 +131,17 @@ class ArxivSearchTool(BaseTool):
         parts = []
         for i, p in enumerate(papers):
             authors = ", ".join(p.get("authors", ["Unknown"]))
+            year = p.get("year", "N/A")
+            title = p.get("title", "Unknown Title")
+            url = p.get("url", "N/A")
+            if p.get("doi"):
+                url = p["doi"]
+            cite = f"CITE: {authors} ({year}). {title}. {url}."
             parts.append(
-                f"{i+1}: {p.get('title', 'Unknown Title')}. {authors}. "
-                f"arXiv, {p.get('year', 'N/A')}.\n"
+                f"{i+1}: {title}. {authors}. "
+                f"arXiv, {year}.\n"
                 f"URL: {p.get('url', 'N/A')}\n"
-                f"Abstract: {p.get('abstract', 'No abstract available.')}"
+                f"Abstract: {p.get('abstract', 'No abstract available.')}\n"
+                f"{cite}"
             )
         return "\n\n".join(parts)

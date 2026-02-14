@@ -77,7 +77,7 @@ class SemanticScholarSearchTool(BaseTool):
             params={
                 "query": query,
                 "limit": self.max_results,
-                "fields": "title,authors,venue,year,abstract,citationCount",
+                "fields": "title,authors,venue,year,abstract,citationCount,paperId,externalIds",
             },
             timeout=30,
         )
@@ -99,10 +99,20 @@ class SemanticScholarSearchTool(BaseTool):
             authors = ", ".join(
                 a.get("name", "Unknown") for a in p.get("authors", [])
             )
+            year = p.get("year") or "N/A"
+            title = p.get("title", "Unknown Title")
+            paper_id = p.get("paperId", "")
+            url = f"https://www.semanticscholar.org/paper/{paper_id}" if paper_id else "N/A"
+            external_ids = p.get("externalIds") or {}
+            doi = external_ids.get("DOI")
+            if doi:
+                url = f"https://doi.org/{doi}"
+            cite = f"CITE: {authors} ({year}). {title}. {url}."
             parts.append(
-                f"{i+1}: {p.get('title', 'Unknown Title')}. {authors}. "
-                f"{p.get('venue', 'Unknown Venue')}, {p.get('year', 'N/A')}.\n"
+                f"{i+1}: {title}. {authors}. "
+                f"{p.get('venue', 'Unknown Venue')}, {year}.\n"
                 f"Citations: {p.get('citationCount', 'N/A')}\n"
-                f"Abstract: {p.get('abstract', 'No abstract available.')}"
+                f"Abstract: {p.get('abstract', 'No abstract available.')}\n"
+                f"{cite}"
             )
         return "\n\n".join(parts)

@@ -6,8 +6,10 @@ Usage:
 """
 
 import argparse
+import json
 import logging
 import sys
+from pathlib import Path
 
 import yaml
 from dotenv import load_dotenv
@@ -16,7 +18,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from .core import IdeaGeneratorConfig, generate_ideas
-from .llm import AVAILABLE_LLMS
+from .expansion import expand_hypotheses
+from .llm import AVAILABLE_LLMS, create_client
 
 logger = logging.getLogger("idea_generator")
 
@@ -40,8 +43,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--topic-file",
         type=str,
-        required=True,
-        help="Path to a Markdown file describing the research topic.",
+        default=None,
+        help="Path to a Markdown file describing the research topic (required unless --expand-hypotheses with --from-idea-json).",
     )
     parser.add_argument(
         "--config",
@@ -104,6 +107,36 @@ def build_parser() -> argparse.ArgumentParser:
         help="Disable the arXiv search tool.",
     )
     parser.add_argument(
+        "--pubmed",
+        action="store_true",
+        default=False,
+        help="Enable the PubMed search tool.",
+    )
+    parser.add_argument(
+        "--openalex",
+        action="store_true",
+        default=False,
+        help="Enable the OpenAlex search tool.",
+    )
+    parser.add_argument(
+        "--expand-hypotheses",
+        action="store_true",
+        default=False,
+        help="Only run hypothesis expansion: output sub-hypotheses to a JSON file (do not run full idea generation).",
+    )
+    parser.add_argument(
+        "--from-idea-json",
+        type=str,
+        default=None,
+        help="Path to a single idea JSON file; use with --expand-hypotheses to expand from this idea instead of a topic file.",
+    )
+    parser.add_argument(
+        "--max-sub-hypotheses",
+        type=int,
+        default=10,
+        help="Max number of sub-hypotheses to generate when using --expand-hypotheses (default 10).",
+    )
+    parser.add_argument(
         "--verbose", "-v",
         action="store_true",
         default=False,
@@ -118,11 +151,56 @@ def main(argv: list[str] | None = None) -> None:
 
     _setup_logging(args.verbose)
 
-    # Build config: defaults -> YAML file -> CLI flags
-    cfg_dict: dict = {}
-    if args.config:
-        cfg_dict = _load_yaml_config(args.config)
+    # ---------- Expansion-only mode ----------
+    if args.expand_hypotheses:
+        cfg_dict = _load_yaml_config(args.config) if args.config else {}
+        if args.from_idea_json:
+            idea_path = Path(args.from_idea_json).resolve()
+            if not idea_path.exists():
+                logger.error("Idea file not found: %s", idea_path)
+                sys.exit(1)
+            with open(idea_path, "r", encoding="utf-8") as f:
+                idea_dict = json.load(f)
+            if isinstance(idea_dict, list) and idea_dict:
+                idea_dict = idea_dict[0]
+            topic_text = None
+            out_base = idea_path.stem
+        else:
+            if not args.topic_file:
+                logger.error("--topic-file is required when using --expand-hypotheses without --from-idea-json.")
+                sys.exit(1)
+            topic_path = Path(args.topic_file).resolve()
+            if not topic_path.exists():
+                logger.error("Topic file not found: %s", topic_path)
+                sys.exit(1)
+            with open(topic_path, "r", encoding="utf-8") as f:
+                topic_text = f.read()
+            idea_dict = None
+            out_base = topic_path.stem
 
+        model = args.model or cfg_dict.get("model", IdeaGeneratorConfig.model)
+        client, model = create_client(model)
+        hypotheses = expand_hypotheses(
+            topic_text=topic_text,
+            idea_dict=idea_dict,
+            client=client,
+            model=model,
+            max_sub=args.max_sub_hypotheses,
+        )
+        output_dir = cfg_dict.get("output_dir", "output")
+        output_path = args.output or str(Path(output_dir) / f"{out_base}.hypotheses.json")
+        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(hypotheses, f, indent=2, ensure_ascii=False)
+        logger.info("Wrote %d sub-hypotheses to %s", len(hypotheses), output_path)
+        return
+
+    # ---------- Normal idea generation ----------
+    if not args.topic_file:
+        logger.error("--topic-file is required for idea generation.")
+        sys.exit(1)
+
+    cfg_dict = _load_yaml_config(args.config) if args.config else {}
     config = IdeaGeneratorConfig(
         model=args.model or cfg_dict.get("model", IdeaGeneratorConfig.model),
         max_generations=args.max_generations if args.max_generations is not None else cfg_dict.get("max_generations", IdeaGeneratorConfig.max_generations),
@@ -133,6 +211,8 @@ def main(argv: list[str] | None = None) -> None:
         novelty_model=args.novelty_model or cfg_dict.get("novelty_model", ""),
         checkpoint_interval=cfg_dict.get("checkpoint_interval", IdeaGeneratorConfig.checkpoint_interval),
         arxiv_enabled=not args.no_arxiv and cfg_dict.get("arxiv_enabled", True),
+        pubmed_enabled=args.pubmed or cfg_dict.get("pubmed_enabled", False),
+        openalex_enabled=args.openalex or cfg_dict.get("openalex_enabled", False),
         resume=args.resume or cfg_dict.get("resume", False),
         system_prompt_override=cfg_dict.get("system_prompt_override", ""),
     )
