@@ -1,139 +1,139 @@
-# Kế hoạch cải tiến Idea Generator
+# Idea Generator Improvement Plan
 
-Tài liệu này mô tả **luồng (flow)** hiện tại của repo và **kế hoạch cải tiến** để:
-1. **Gen toàn bộ lý thuyết/giả thuyết mới** từ một ý tưởng (topic)
-2. **Trích nguồn (citation) cụ thể** trong mỗi idea
-3. **Bổ sung phương pháp search** ngoài Semantic Scholar và arXiv
+This document describes the **current flow** of the repo and the **improvement plan** to:
+1. **Generate full theory/hypotheses** from a single idea (topic)
+2. **Concrete citations** in each idea
+3. **Additional search methods** beyond Semantic Scholar and arXiv
 
 ---
 
-## 1. Luồng (flow) hiện tại của repo
+## 1. Current repo flow
 
 ```
 Topic (.md) → core.generate_ideas()
     │
-    ├─ Đọc topic file (workshop_description)
-    ├─ Tạo LLM client (OpenAI/Claude/Gemini/Ollama...)
-    ├─ Đăng ký tools: [SemanticScholar, Arxiv?, FinalizeIdea]
-    ├─ System prompt: hướng dẫn format ACTION/ARGUMENTS + IDEA JSON
+    ├─ Read topic file (workshop_description)
+    ├─ Create LLM client (OpenAI/Claude/Gemini/Ollama...)
+    ├─ Register tools: [SemanticScholar, Arxiv?, FinalizeIdea]
+    ├─ System prompt: ACTION/ARGUMENTS format + IDEA JSON
     │
-    └─ Vòng lặp: max_generations lần
+    └─ Loop: max_generations times
          │
-         └─ Mỗi idea: num_reflections vòng
+         └─ Per idea: num_reflections rounds
               │
-              ├─ Prompt: IDEA_GENERATION (lần 1) hoặc IDEA_REFLECTION (các lần sau)
-              ├─ LLM trả lời → parse ACTION + ARGUMENTS
-              ├─ Nếu SearchSemanticScholar / SearchArxiv → gọi tool → last_tool_results
-              ├─ Nếu FinalizeIdea → validate schema → (optional) novelty_score → lưu idea
-              └─ Checkpoint mỗi checkpoint_interval idea
+              ├─ Prompt: IDEA_GENERATION (first) or IDEA_REFLECTION (later)
+              ├─ LLM response → parse ACTION + ARGUMENTS
+              ├─ If SearchSemanticScholar / SearchArxiv → call tool → last_tool_results
+              ├─ If FinalizeIdea → validate schema → (optional) novelty_score → save idea
+              └─ Checkpoint every checkpoint_interval ideas
     │
-    └─ Ghi JSON ra output_path
+    └─ Write JSON to output_path
 ```
 
-**Điểm quan trọng:**
-- Mỗi run sinh **một danh sách ideas** (số lượng = `max_generations`), mỗi idea **độc lập** (reflection + search rồi finalize).
-- **Related Work** hiện là **text tự do**, không có trường citation chuẩn (author, year, DOI/URL).
-- Search chỉ có **2 nguồn**: Semantic Scholar, arXiv.
+**Key points:**
+- Each run produces **one list of ideas** (count = `max_generations`); each idea is **independent** (reflection + search then finalize).
+- **Related Work** is currently **free text**, with no standard citation fields (author, year, DOI/URL).
+- Search has only **2 sources**: Semantic Scholar, arXiv.
 
 ---
 
-## 2. Mục tiêu cải tiến
+## 2. Improvement goals
 
-| Mục tiêu | Hiện trạng | Mong muốn |
-|----------|------------|------------|
-| **Gen “tất cả” lý thuyết/giả thuyết** | Gen N idea rời rạc, không có “branch” theo giả thuyết con | Có thể gen **nhiều giả thuyết con** từ một topic, hoặc **mở rộng** (expand) từ một idea thành nhiều biến thể lý thuyết |
-| **Citation cụ thể** | Related Work là đoạn văn, không trích nguồn chuẩn | Mỗi idea có **References/Citations** dạng structured (author, year, title, URL/DOI), bắt buộc dựa trên kết quả search |
-| **Search đa nguồn** | Chỉ Semantic Scholar + arXiv | Thêm PubMed, OpenAlex, CrossRef, DBLP, (hoặc Google Scholar proxy) và **gộp/rank** kết quả |
+| Goal | Current | Desired |
+|------|---------|---------|
+| **Generate “all” theory/hypotheses** | Generate N separate ideas, no “branch” by sub-hypothesis | Can generate **multiple sub-hypotheses** from one topic, or **expand** from one idea into many theory variants |
+| **Concrete citations** | Related Work is prose, no standard citations | Each idea has **References/Citations** (author, year, title, URL/DOI), required to be based on search results |
+| **Multi-source search** | Only Semantic Scholar + arXiv | Add PubMed, OpenAlex, CrossRef, DBLP (or Google Scholar proxy) and **merge/rank** results |
 
 ---
 
-## 3. Kế hoạch chi tiết
+## 3. Detailed plan
 
-### 3.1. Gen “tất cả” lý thuyết / giả thuyết mới từ một ý tưởng
+### 3.1. Generate “all” theory / new hypotheses from one idea
 
-**Hướng tiếp cận (chọn một hoặc kết hợp):**
+**Approach (choose one or combine):**
 
-1. **Chế độ “hypothesis expansion” (mới)**  
-   - **Input:** 1 topic file (như hiện tại) **hoặc** 1 idea đã có (JSON).  
-   - **Output:** N **giả thuyết con** (sub-hypotheses) hoặc **biến thể lý thuyết** (variants) từ idea gốc.  
-   - **Cách làm:**  
-     - Thêm prompt kiểu: “Từ idea/giả thuyết sau, liệt kê 5–10 giả thuyết con hoặc biến thể lý thuyết có thể nghiên cứu độc lập.”  
-     - LLM trả về danh sách (Name, Short Hypothesis, one-liner) → sau đó với **từng** giả thuyết con có thể chạy **full pipeline** (search + reflection + finalize) để ra idea đầy đủ.  
-   - **Code:** module mới `idea_generator/expansion.py` + CLI flag `--expand-hypotheses` (và optional `--from-idea-json`).
+1. **“Hypothesis expansion” mode (new)**  
+   - **Input:** 1 topic file (as now) **or** 1 existing idea (JSON).  
+   - **Output:** N **sub-hypotheses** or **theory variants** from the original idea.  
+   - **Implementation:**  
+     - Add a prompt like: “From the following idea/hypothesis, list 5–10 sub-hypotheses or theory variants that can be researched independently.”  
+     - LLM returns a list (Name, Short Hypothesis, one-liner) → then for **each** sub-hypothesis you can run the **full pipeline** (search + reflection + finalize) to get a full idea.  
+   - **Code:** new module `idea_generator/expansion.py` + CLI flag `--expand-hypotheses` (and optional `--from-idea-json`).
 
-2. **Tăng chất lượng “phủ” từ một topic**  
-   - Giữ pipeline hiện tại nhưng:  
-     - **System prompt:** yêu cầu LLM “cover diverse angles: theory, algorithms, empirical, negative results, applications”.  
-     - **Prev ideas:** đưa vào prompt danh sách idea đã gen để tránh trùng và ép “góc mới”.  
-   - Có thể thêm **optional** bước sau khi đủ N idea: “Suggest 3 more *orthogonal* directions” → đưa lại vào queue (nếu muốn gen thêm).
+2. **Improve “coverage” from one topic**  
+   - Keep current pipeline but:  
+     - **System prompt:** ask LLM to “cover diverse angles: theory, algorithms, empirical, negative results, applications”.  
+     - **Prev ideas:** pass the list of already-generated ideas into the prompt to avoid duplicates and encourage “new angles”.  
+   - Optionally add a step after N ideas: “Suggest 3 more *orthogonal* directions” → feed back into the queue (if you want to generate more).
 
-3. **Batch “toàn bộ” giả thuyết**  
-   - Sau bước expansion: với mỗi (topic hoặc idea gốc) → list H giả thuyết con → **for each** chạy `generate_ideas()` với topic = mô tả ngắn của giả thuyết đó.  
-   - Output: 1 file JSON gồm **nhiều idea** (có thể nhóm theo `source_hypothesis_id` hoặc `parent_idea`).
+3. **Batch “all” hypotheses**  
+   - After expansion: for each (topic or root idea) → list H sub-hypotheses → **for each** run `generate_ideas()` with topic = short description of that hypothesis.  
+   - Output: 1 JSON file with **many ideas** (optionally grouped by `source_hypothesis_id` or `parent_idea`).
 
-**Công việc cụ thể:**
-- [ ] Thêm `expansion.py`: hàm `expand_hypotheses(topic_text | idea_dict) -> List[dict]`.
-- [ ] Thêm prompt `HYPOTHESIS_EXPANSION_PROMPT` (và optional `IDEA_VARIANTS_PROMPT`).
+**Concrete tasks:**
+- [ ] Add `expansion.py`: function `expand_hypotheses(topic_text | idea_dict) -> List[dict]`.
+- [ ] Add prompt `HYPOTHESIS_EXPANSION_PROMPT` (and optional `IDEA_VARIANTS_PROMPT`).
 - [ ] CLI: `--expand-hypotheses`, `--from-idea-json`, `--max-sub-hypotheses`.
-- [ ] (Tùy chọn) Trong `core.py`: chế độ “generate from multiple seeds” (mỗi seed = một giả thuyết ngắn).
+- [ ] (Optional) In `core.py`: “generate from multiple seeds” mode (each seed = one short hypothesis).
 
 ---
 
-### 3.2. Trích nguồn (citation) cụ thể
+### 3.2. Concrete citations
 
-**Thay đổi schema và prompt:**
+**Schema and prompt changes:**
 
 1. **Schema (validators.py)**  
-   - Thêm trường **`References`** (hoặc `Citations`):  
-     - Kiểu: `array of objects` với ít nhất: `author` (string), `year` (string/number), `title` (string), `url` hoặc `doi` (string, optional).  
-   - Có thể giữ **Related Work** như đoạn văn, nhưng **yêu cầu** mỗi work được nhắc trong Related Work phải có entry tương ứng trong `References`.
+   - Add **`References`** (or `Citations`) field:  
+     - Type: `array of objects` with at least: `author` (string), `year` (string/number), `title` (string), `url` or `doi` (string, optional).  
+   - Keep **Related Work** as prose, but **require** that every work mentioned in Related Work has a corresponding entry in `References`.
 
-2. **Tool search trả về “citation-ready”**  
-   - **Semantic Scholar:** API đã có `title`, `authors`, `year`, `abstract`; bổ sung `url` (e.g. `https://www.semanticscholar.org/paper/...`) và nếu API trả về `externalIds` (DOI) thì đưa vào.  
-   - **arXiv:** đã có `url`; thêm field `doi` nếu có trong response.  
-   - Format chuỗi trả về cho LLM: thêm dòng “CITE: Author (Year). Title. URL.” để LLM dễ copy vào References.
+2. **Search tools return “citation-ready” output**  
+   - **Semantic Scholar:** API already has `title`, `authors`, `year`, `abstract`; add `url` (e.g. `https://www.semanticscholar.org/paper/...`) and if API returns `externalIds` (DOI) include it.  
+   - **arXiv:** already has `url`; add `doi` field if present in response.  
+   - String format for LLM: add line “CITE: Author (Year). Title. URL.” so the LLM can copy into References.
 
-3. **Prompt**  
+3. **Prompts**  
    - **FinalizeIdea / IDEA JSON:**  
-     - Mô tả rõ: “Related Work phải trích từ các paper bạn đã tìm qua SearchSemanticScholar/SearchArxiv; mỗi nguồn cần có trong References với author, year, title, url (hoặc doi).”  
-   - **System prompt:** “Trước khi FinalizeIdea, bạn phải đã gọi ít nhất một lần search; khi viết Related Work, trích nguồn theo format [Author (Year)] và đảm bảo mỗi nguồn có trong References.”
+     - State clearly: “Related Work must cite papers you found via SearchSemanticScholar/SearchArxiv; each source must appear in References with author, year, title, url (or doi).”  
+   - **System prompt:** “Before FinalizeIdea you must have called search at least once; when writing Related Work, cite as [Author (Year)] and ensure each source is in References.”
 
 4. **Validation**  
-   - (Optional nhưng nên có): Kiểm tra `References` không rỗng khi `Related Work` có độ dài > 0; có thể kiểm tra sơ bộ format (có `author`, `year`, `title`).
+   - (Optional but recommended): Check that `References` is not empty when `Related Work` has length > 0; basic format check (has `author`, `year`, `title`).
 
-**Công việc cụ thể:**
-- [ ] `validators.py`: thêm `References` vào schema (array of `{ author, year, title, url?, doi? }`).
-- [ ] `prompts.py`: cập nhật FinalizeIdea description và system prompt (citation + References).
-- [ ] `tools/semantic_scholar.py`: request thêm fields (url, externalIds); format output có dòng CITE.
-- [ ] `tools/arxiv.py`: format output có dòng CITE; thêm doi nếu có.
-- [ ] (Tùy chọn) Kiểm tra consistency Related Work ↔ References (số lượng tối thiểu).
+**Concrete tasks:**
+- [ ] `validators.py`: add `References` to schema (array of `{ author, year, title, url?, doi? }`).
+- [ ] `prompts.py`: update FinalizeIdea description and system prompt (citation + References).
+- [ ] `tools/semantic_scholar.py`: request extra fields (url, externalIds); format output with CITE line.
+- [ ] `tools/arxiv.py`: format output with CITE line; add doi if present.
+- [ ] (Optional) Check consistency Related Work ↔ References (minimum count).
 
 ---
 
-### 3.3. Phương pháp search khác (đa nguồn)
+### 3.3. Other search methods (multi-source)
 
-**Các nguồn đề xuất:**
+**Suggested sources:**
 
-| Nguồn | API / Cách dùng | Ghi chú |
-|-------|------------------|--------|
-| **PubMed** | REST API `eutils` | Y học, sinh học, NLP y tế. |
-| **OpenAlex** | REST API, free | Bao phủ rộng, có DOI, citations. |
-| **CrossRef** | REST API (DOI search) | Tìm theo DOI, title, author. |
+| Source | API / Usage | Notes |
+|--------|-------------|-------|
+| **PubMed** | REST API `eutils` | Medicine, biology, medical NLP. |
+| **OpenAlex** | REST API, free | Broad coverage, DOI, citations. |
+| **CrossRef** | REST API (DOI search) | Search by DOI, title, author. |
 | **DBLP** | API / XML | CS, conference papers. |
-| **Google Scholar** | Không có API chính thức | Chỉ dùng qua proxy/scraper (legal/ToS risk). |
+| **Google Scholar** | No official API | Only via proxy/scraper (legal/ToS risk). |
 
-**Thiết kế:**
+**Design:**
 
-1. **Chuẩn hóa output mỗi tool**  
-   - Mỗi tool search trả về (nội bộ) list dict với format thống nhất, ví dụ:  
+1. **Normalize each tool’s output**  
+   - Each search tool returns (internally) a list of dicts with a unified format, e.g.:  
      `title`, `authors`, `year`, `abstract`, `url`, `doi`, `source` (="semantic_scholar" | "arxiv" | "pubmed" | ...).  
-   - Hàm `_format()` chung hoặc per-tool nhưng cùng cấu trúc CITE.
+   - Shared `_format()` or per-tool but same CITE structure.
 
-2. **Thêm tools mới (cùng interface BaseTool)**  
+2. **Add new tools (same BaseTool interface)**  
    - `PubMedSearchTool`: query → PubMed eutils → parse XML/JSON → format.  
    - `OpenAlexSearchTool`: query → OpenAlex API → format.  
-   - `CrossRefSearchTool`: (optional) tìm theo title/author.  
-   - (DBLP/Google Scholar: sau nếu cần.)
+   - `CrossRefSearchTool`: (optional) search by title/author.  
+   - (DBLP/Google Scholar: later if needed.)
 
 3. **Config**  
    - `config/default.yaml`:  
@@ -141,57 +141,57 @@ Topic (.md) → core.generate_ideas()
      - `arxiv_enabled: true`  
      - `pubmed_enabled: false`  
      - `openalex_enabled: false`  
-   - CLI flags: `--no-arxiv`, `--pubmed`, `--openalex`, v.v.
+   - CLI flags: `--no-arxiv`, `--pubmed`, `--openalex`, etc.
 
-4. **Gộp / xếp hạng (optional)**  
-   - Nếu nhiều tools bật: LLM gọi nhiều action (SearchSemanticScholar, SearchArxiv, SearchPubMed, …) trong các reflection.  
-   - Hoặc thêm **meta-tool** “SearchLiterature” nhận `query` + `sources: ["semantic_scholar","arxiv","pubmed"]` → gọi từng backend → merge, dedup by title/DOI → sort (e.g. by citation count hoặc year) → trả một block cho LLM.  
-   - Merge/dedup có thể làm trong `core.py` hoặc tool `SearchLiterature` mới.
+4. **Merge / rank (optional)**  
+   - If multiple tools are enabled: LLM calls multiple actions (SearchSemanticScholar, SearchArxiv, SearchPubMed, …) across reflections.  
+   - Or add a **meta-tool** “SearchLiterature” that takes `query` + `sources: ["semantic_scholar","arxiv","pubmed"]` → call each backend → merge, dedup by title/DOI → sort (e.g. by citation count or year) → return one block to the LLM.  
+   - Merge/dedup can live in `core.py` or a new `SearchLiterature` tool.
 
-**Công việc cụ thể:**
-- [ ] Định nghĩa `CitationRecord` (dataclass hoặc dict) chuẩn: title, authors, year, abstract, url, doi, source.
-- [ ] `tools/pubmed.py`: PubMedSearchTool, parse eutils response, map sang CitationRecord + format CITE.
-- [ ] `tools/openalex.py`: OpenAlexSearchTool (theo docs OpenAlex).
-- [ ] (Tùy chọn) `tools/crossref.py`: CrossRefSearchTool.
-- [ ] `core.py`: đăng ký tools theo config (pubmed_enabled, openalex_enabled).
-- [ ] `config/default.yaml` + `cli.py`: thêm options cho từng nguồn.
-- [ ] (Tùy chọn) Tool `SearchLiterature` gộp nhiều nguồn + dedup.
+**Concrete tasks:**
+- [ ] Define standard `CitationRecord` (dataclass or dict): title, authors, year, abstract, url, doi, source.
+- [ ] `tools/pubmed.py`: PubMedSearchTool, parse eutils response, map to CitationRecord + CITE format.
+- [ ] `tools/openalex.py`: OpenAlexSearchTool (per OpenAlex docs).
+- [ ] (Optional) `tools/crossref.py`: CrossRefSearchTool.
+- [ ] `core.py`: register tools from config (pubmed_enabled, openalex_enabled).
+- [ ] `config/default.yaml` + `cli.py`: add options per source.
+- [ ] (Optional) SearchLiterature tool that merges multiple sources + dedup.
 
 ---
 
-## 4. Thứ tự triển khai đề xuất
+## 4. Suggested implementation order
 
-1. **Phase 1 – Citation (ngắn hạn)**  
-   - Schema References + prompt + format CITE trong S2/arXiv.  
-   - Không thêm dependency nặng, dễ kiểm tra.
+1. **Phase 1 – Citation (short term)**  
+   - References schema + prompts + CITE format in S2/arXiv.  
+   - No heavy new dependencies, easy to verify.
 
-2. **Phase 2 – Thêm 1–2 search (PubMed, OpenAlex)**  
-   - Mở rộng nguồn, LLM có thêm tài liệu để trích dẫn.
+2. **Phase 2 – Add 1–2 search (PubMed, OpenAlex)**  
+   - Broaden sources; LLM has more literature to cite.
 
 3. **Phase 3 – Hypothesis expansion**  
-   - Module expansion + CLI + (tùy chọn) chạy full pipeline cho từng giả thuyết con để “gen tất cả lý thuyết/giả thuyết mới” từ một ý tưởng.
+   - Expansion module + CLI + (optional) run full pipeline per sub-hypothesis to “generate all theory/hypotheses” from one idea.
 
-4. **Phase 4 (tùy chọn)**  
-   - SearchLiterature merge/dedup, CrossRef/DBLP, cải thiện prompt “diverse angles” để phủ tốt hơn từ một topic.
+4. **Phase 4 (optional)**  
+   - SearchLiterature merge/dedup, CrossRef/DBLP, improve “diverse angles” prompt for better coverage from one topic.
 
 ---
 
-## 5. Tóm tắt file cần sửa/tạo
+## 5. Summary of files to add/change
 
-| File | Thay đổi |
-|------|----------|
-| `idea_generator/validators.py` | Thêm trường `References` (schema). |
-| `idea_generator/prompts.py` | Citation + References trong FinalizeIdea & system prompt. |
-| `idea_generator/tools/semantic_scholar.py` | Fields url/DOI, format CITE. |
-| `idea_generator/tools/arxiv.py` | Format CITE, doi nếu có. |
-| `idea_generator/tools/pubmed.py` | **Mới.** PubMedSearchTool. |
-| `idea_generator/tools/openalex.py` | **Mới.** OpenAlexSearchTool. |
-| `idea_generator/core.py` | Đăng ký tools theo config (pubmed, openalex). |
-| `idea_generator/expansion.py` | **Mới.** expand_hypotheses(), prompt expansion. |
+| File | Change |
+|------|--------|
+| `idea_generator/validators.py` | Add `References` field (schema). |
+| `idea_generator/prompts.py` | Citation + References in FinalizeIdea & system prompt. |
+| `idea_generator/tools/semantic_scholar.py` | Url/DOI fields, CITE format. |
+| `idea_generator/tools/arxiv.py` | CITE format, doi if present. |
+| `idea_generator/tools/pubmed.py` | **New.** PubMedSearchTool. |
+| `idea_generator/tools/openalex.py` | **New.** OpenAlexSearchTool. |
+| `idea_generator/core.py` | Register tools from config (pubmed, openalex). |
+| `idea_generator/expansion.py` | **New.** expand_hypotheses(), expansion prompt. |
 | `idea_generator/__main__.py` / `cli.py` | Flags: --expand-hypotheses, --from-idea-json, --pubmed, --openalex. |
 | `config/default.yaml` | pubmed_enabled, openalex_enabled. |
 
-Sau khi triển khai, khi bạn có **một ý tưởng** (topic file hoặc idea JSON):
-- Hệ thống có thể **expand** thành nhiều giả thuyết con và với mỗi giả thuyết (hoặc với topic) chạy pipeline **search đa nguồn** → **reflection** → **finalize** với **trích nguồn cụ thể** trong References.
+After implementation, when you have **one idea** (topic file or idea JSON):
+- The system can **expand** it into multiple sub-hypotheses and for each hypothesis (or for the topic) run the **multi-source search** → **reflection** → **finalize** pipeline with **concrete citations** in References.
 
-Nếu bạn muốn, bước tiếp theo có thể là: triển khai **Phase 1 (citation)** trước (schema + prompt + format CITE trong S2/arXiv).
+If you like, the next step can be implementing **Phase 1 (citation)** first (schema + prompt + CITE format in S2/arXiv).

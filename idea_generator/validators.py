@@ -108,3 +108,182 @@ def validate_idea(idea: dict) -> Tuple[bool, List[str]]:
         path = " -> ".join(str(p) for p in err.absolute_path) if err.absolute_path else "(root)"
         messages.append(f"[{path}] {err.message}")
     return False, messages
+
+
+# ---------------------------------------------------------------------------
+# Literature Review (Phase 1) schema
+# ---------------------------------------------------------------------------
+
+LITERATURE_REVIEW_ENTRY_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "source": {"type": "string", "minLength": 1},
+        "citation": {
+            "type": "object",
+            "properties": {
+                "author": {"type": "string"},
+                "year": {"oneOf": [{"type": "string"}, {"type": "integer"}]},
+                "title": {"type": "string"},
+                "url": {"type": "string"},
+                "doi": {"type": "string"},
+            },
+            "required": ["author", "year", "title"],
+        },
+        "approach_summary": {"type": "string", "minLength": 1},
+        "strengths": {
+            "type": "array",
+            "items": {"type": "string"},
+            "minItems": 0,
+        },
+        "weaknesses": {
+            "type": "array",
+            "items": {"type": "string"},
+            "minItems": 0,
+        },
+        "research_gaps": {
+            "type": "array",
+            "items": {"type": "string"},
+            "minItems": 0,
+        },
+    },
+    "required": ["source", "citation", "approach_summary", "strengths", "weaknesses", "research_gaps"],
+}
+
+LITERATURE_REVIEW_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "topic_summary": {"type": "string", "minLength": 1},
+        "entries": {
+            "type": "array",
+            "items": LITERATURE_REVIEW_ENTRY_SCHEMA,
+            "minItems": 1,
+        },
+        "synthesis": {"type": "string", "minLength": 1},
+    },
+    "required": ["topic_summary", "entries", "synthesis"],
+}
+
+
+def validate_literature_review(data: dict) -> Tuple[bool, List[str]]:
+    """Validate a literature review dict against the schema.
+
+    Returns:
+        (is_valid, list_of_error_messages)
+    """
+    validator = jsonschema.Draft7Validator(LITERATURE_REVIEW_SCHEMA)
+    errors = sorted(validator.iter_errors(data), key=lambda e: list(e.path))
+    if not errors:
+        return True, []
+    messages = []
+    for err in errors:
+        path = " -> ".join(str(p) for p in err.absolute_path) if err.absolute_path else "(root)"
+        messages.append(f"[{path}] {err.message}")
+    return False, messages
+
+
+# ---------------------------------------------------------------------------
+# Experiment Plan (Phase 4) schema
+# ---------------------------------------------------------------------------
+
+EXPERIMENT_PLAN_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "proposal_ref": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "title": {"type": "string"},
+            },
+            "required": ["name", "title"],
+        },
+        "metrics": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "description": {"type": "string"},
+                    "primary": {"type": "boolean"},
+                },
+                "required": ["name", "description", "primary"],
+            },
+            "minItems": 1,
+        },
+        "baselines": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "description": {"type": "string"},
+                    "source": {"type": "string"},
+                    "citation": {"type": "string"},
+                },
+                "required": ["name", "description"],
+            },
+            "minItems": 0,
+        },
+        "datasets": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "description": {"type": "string"},
+                    "size_or_source": {"type": "string"},
+                    "license_or_access": {"type": "string"},
+                },
+                "required": ["name", "description"],
+            },
+            "minItems": 0,
+        },
+        "implementation_steps": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "order": {"type": "integer"},
+                    "step": {"type": "string"},
+                    "description": {"type": "string"},
+                    "deliverables": {"type": "string"},
+                },
+                "required": ["order", "step", "description"],
+            },
+            "minItems": 1,
+        },
+        "min_config": {
+            "type": "object",
+            "properties": {
+                "hardware": {"type": "string"},
+                "min_data": {"type": "string"},
+                "framework": {"type": "string"},
+                "estimated_time": {"type": "string"},
+            },
+        },
+    },
+    "required": [
+        "proposal_ref",
+        "metrics",
+        "baselines",
+        "datasets",
+        "implementation_steps",
+        "min_config",
+    ],
+}
+
+
+def validate_experiment_plan(data: dict) -> Tuple[bool, List[str]]:
+    """Validate an experiment plan dict against the schema.
+
+    Returns:
+        (is_valid, list_of_error_messages)
+    """
+    validator = jsonschema.Draft7Validator(EXPERIMENT_PLAN_SCHEMA)
+    errors = sorted(validator.iter_errors(data), key=lambda e: list(e.path))
+    if not errors:
+        return True, []
+    messages = []
+    for err in errors:
+        path = " -> ".join(str(p) for p in err.absolute_path) if err.absolute_path else "(root)"
+        messages.append(f"[{path}] {err.message}")
+    return False, messages

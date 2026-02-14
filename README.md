@@ -1,24 +1,27 @@
 # Idea Generator
 
-A **standalone** AI research idea generator, inspired by the ideation pipeline of [AI Scientist v2](https://github.com/SakanaAI/AI-Scientist-v2). This package generates high-quality, novel research ideas from a topic description, with optional **literature search** (Semantic Scholar, arXiv, PubMed, OpenAlex), **structured citations (References)**, and **hypothesis expansion** to derive multiple sub-hypotheses from one idea.
+A **standalone** tool for AI research workflows: from a topic file (Markdown) you can run a **4-phase research pipeline** (literature review → gaps/hypotheses → direction + critique → experiment plan) or **quickly generate many ideas** (idea generation). Inspired by [AI Scientist v2](https://github.com/SakanaAI/AI-Scientist-v2).
 
 ---
 
-## Key Features
+## Two modes of use
 
-- **End-to-end idea generation**: From a Markdown topic file to a structured JSON list of research proposals.
-- **Multi-model support**: OpenAI (GPT-4o, o1, o3-mini), Anthropic Claude, Gemini, Ollama (Qwen, DeepSeek, ...), and more.
-- **Literature search (4 sources)**:
-  - **Semantic Scholar** – general CS/ML (default on)
-  - **arXiv** – preprints (default on)
-  - **PubMed** – medicine, biology (optional: `--pubmed` or `pubmed_enabled: true`)
-  - **OpenAlex** – broad coverage, DOI/citations (optional: `--openalex` or `openalex_enabled: true`)
-- **Structured citations**: Each idea can include a **References** array (author, year, title, url/doi). Search results return **CITE** lines for the LLM to copy into References.
-- **Hypothesis expansion**: From one topic or one idea JSON, generate a list of **sub-hypotheses** or theory variants (`--expand-hypotheses`, optional `--from-idea-json`).
-- **JSON schema validation**: Every idea is validated; invalid ideas get an auto-fix prompt.
-- **Novelty scoring** (optional): LLM-based novelty rating (0.0 – 1.0) per idea.
-- **Checkpoint / Resume**: Long runs can be interrupted and resumed.
-- **YAML config + CLI**: Configure via `config/default.yaml` with full CLI override.
+| Mode | Command | Purpose |
+|------|---------|---------|
+| **Research pipeline** | `--pipeline` or `--phase <name>` | Structured research flow: lit review → gaps/hypotheses → choose direction + critique → experiment plan. Each step produces one JSON file. |
+| **Idea generation** | `--topic-file ...` (without `--pipeline`) | Quickly generate multiple research proposals from a topic, with search + reflection; output is one JSON file (array of ideas). |
+| **Hypothesis expansion** | `--expand-hypotheses` | From a topic or one idea JSON → list of sub-hypotheses (use standalone or with the pipeline). |
+
+---
+
+## Key features
+
+- **Research pipeline (4 phases):** Structured literature review (strengths/weaknesses/gaps) → Gaps + hypotheses → Direction (proposal + critique + evidence) → Experiment plan (metrics, baselines, datasets, implementation_steps, min_config). Run the full pipeline or a single phase using existing files.
+- **Idea generation:** From a topic file → multiple research ideas (Name, Title, Hypothesis, Related Work, References, Abstract, Experiments, Risk Factors) with reflection + search.
+- **Literature search (4 sources):** Semantic Scholar, arXiv (default), PubMed, OpenAlex (optional). Used in both pipeline and idea generation.
+- **Multi-model:** OpenAI (gpt-4o, o1, o3-mini, gpt-5.2), Anthropic Claude, Gemini, Ollama (Qwen, DeepSeek, ...).
+- **Validation:** JSON schema for ideas, lit review, and experiment plan; errors are sent back to the LLM to fix.
+- **Checkpoint / Resume** (idea generation), **YAML config + CLI**.
 
 ---
 
@@ -27,61 +30,51 @@ A **standalone** AI research idea generator, inspired by the ideation pipeline o
 ### 1. Install
 
 ```bash
-cd idea_recommendation   # or your repo root
+cd idea_recommendation
 pip install -e .
 ```
 
-Or install dependencies only:
+Or install dependencies only: `pip install -r requirements.txt`
+
+### 2. Environment variables (API keys)
 
 ```bash
-pip install -r requirements.txt
+export OPENAI_API_KEY="sk-..."          # Required for OpenAI
+export S2_API_KEY="..."                 # Optional – Semantic Scholar (higher rate limit)
+export ANTHROPIC_API_KEY="..."         # Optional – Claude
+export GEMINI_API_KEY="..."             # Optional – Gemini
+export OPENALEX_MAILTO="your@email.com" # Optional – OpenAlex
 ```
 
-### 2. Set API Keys and optional env
+### 3. Run
+
+**Research pipeline (recommended for a full research workflow):**
 
 ```bash
-# Required for most models (OpenAI)
-export OPENAI_API_KEY="sk-..."
-
-# Optional – Semantic Scholar (higher rate limits)
-export S2_API_KEY="..."
-
-# Optional – Anthropic
-export ANTHROPIC_API_KEY="..."
-
-# Optional – Gemini
-export GEMINI_API_KEY="..."
-
-# Optional – OpenAlex (polite pool, faster responses)
-export OPENALEX_MAILTO="your@email.com"
+idea-generator --topic-file topics/gan_optimization_adoe.md --pipeline
 ```
 
-### 3. Run idea generation
+→ Produces in order: `output/<base>.lit_review.json` → `.hypotheses.json` → `.direction.json` → `.experiment_plan.json`
+
+**Idea generation (quick batch of ideas):**
 
 ```bash
-# Basic run
-idea-generator --topic-file topics/example_icbinb.md --model gpt-4o-2024-05-13 --max-generations 5
-
-# With config file and custom output
-idea-generator --topic-file topics/example_icbinb.md --config config/default.yaml --output output/my_ideas.json
-
-# As Python module
-python -m idea_generator --topic-file topics/example_icbinb.md --num-reflections 3
+idea-generator --topic-file topics/example_icbinb.md --max-generations 5 --output output/ideas.json
 ```
 
-### 4. Resume a previous run
+**Resume (idea generation only):**
 
 ```bash
-idea-generator --topic-file topics/example_icbinb.md --output output/my_ideas.json --resume
+idea-generator --topic-file topics/example_icbinb.md --output output/ideas.json --resume
 ```
 
 ---
 
-## Hướng dẫn chi tiết (Detailed guide)
+## Detailed guide
 
-### Cấu trúc file topic (Topic file format)
+### Topic file format
 
-Topic là file Markdown (`.md`) mô tả hướng nghiên cứu. Ví dụ:
+The topic is a Markdown (`.md`) file describing the research area. Example:
 
 ```markdown
 # Title: My Research Topic
@@ -93,104 +86,132 @@ One sentence summary.
 Longer description: background, goals, expected contributions, evaluation plan.
 ```
 
-- **Title / Keywords / TL;DR / Abstract** giúp LLM nắm context và sinh idea phù hợp.
-- Đường dẫn: `--topic-file path/to/topic.md`.
+Use with `--topic-file path/to/topic.md` (pipeline or idea generation).
 
-### Sinh ý tưởng (Generate ideas)
+---
 
-1. **Chỉ định topic và số idea:**
-   ```bash
-   idea-generator --topic-file topics/gan_optimization_adoe.md --max-generations 5
-   ```
+### Research pipeline (4 phases)
 
-2. **Dùng file config:**  
-   Mặc định đọc `config/default.yaml` nếu có `--config`:
-   ```bash
-   idea-generator --topic-file topics/example_icbinb.md --config config/default.yaml
-   ```
+Flow: **Literature review** → **Gaps & hypotheses** → **Direction + critique** → **Experiment plan**. Each phase writes one JSON file with a defined schema.
 
-3. **Tắt/bật search:**
-   - Tắt arXiv: `--no-arxiv`
-   - Bật PubMed: `--pubmed`
-   - Bật OpenAlex: `--openalex`
+**Run full pipeline:**
 
-4. **Validation và novelty:**
-   - Tắt kiểm tra schema: `--no-validate`
-   - Bật chấm novelty: `--novelty-scoring` (có thể chỉ định `--novelty-model`).
+```bash
+idea-generator --topic-file topics/gan_optimization_adoe.md --pipeline
+```
 
-5. **Output:**  
-   Mặc định ghi ra `<topic-file-base>.json` (ví dụ `topics/example_icbinb.json`). Đổi đường dẫn: `--output output/ideas.json`.
+**Run a single phase** (when you already have the previous phase’s output):
 
-### Trích nguồn (Citations / References)
+```bash
+# Phase 1: literature review
+idea-generator --topic-file topics/gan_optimization_adoe.md --phase literature_review --output output/my.lit_review.json
 
-- Mỗi idea có thể có trường **References** (mảng object): `author`, `year`, `title`, `url` hoặc `doi`.
-- LLM được yêu cầu gọi ít nhất một lần search trước khi finalize và điền References từ các dòng **CITE** trong kết quả search.
-- Trong **Related Work**, nguồn trích dẫn theo dạng `[Author (Year)]` và phải có entry tương ứng trong **References**.
+# Phase 2: from lit review
+idea-generator --phase hypotheses --from-literature output/gan_optimization_adoe.lit_review.json
 
-### Công cụ tìm kiếm (Literature search tools)
+# Phase 3: from lit review + hypotheses
+idea-generator --phase direction --from-literature output/gan_optimization_adoe.lit_review.json --from-hypotheses output/gan_optimization_adoe.hypotheses.json
 
-| Tool                 | Mặc định | Bật/tắt                    | Ghi chú                          |
-|----------------------|----------|-----------------------------|-----------------------------------|
-| Semantic Scholar     | Bật      | Luôn bật                    | CS/ML, cần `S2_API_KEY` (tùy chọn) |
-| arXiv                | Bật      | `--no-arxiv` để tắt         | Preprints                         |
-| PubMed               | Tắt      | `--pubmed` hoặc YAML        | Y học, sinh học                   |
-| OpenAlex             | Tắt      | `--openalex` hoặc YAML      | Bao phủ rộng, DOI; `OPENALEX_MAILTO` tùy chọn |
+# Phase 4: from direction
+idea-generator --phase experiment_plan --from-direction output/gan_optimization_adoe.direction.json
+```
 
-Ví dụ bật thêm PubMed và OpenAlex:
+**Pipeline config** in `config/default.yaml`:
+
+```yaml
+research_pipeline:
+  literature_reflections: 8   # Reflection rounds for Phase 1
+  direction_reflections: 5    # Reflection rounds for Phase 3
+  max_hypotheses: 10         # Max hypotheses for Phase 2 (5–20)
+```
+
+**Output format per phase:**
+
+| File | Main contents |
+|------|----------------|
+| `*.lit_review.json` | `topic_summary`, `entries` (source, citation, approach_summary, strengths, weaknesses, research_gaps), `synthesis` |
+| `*.hypotheses.json` | `gaps` (id, description, related_entries, priority?), `hypotheses` (name, short_hypothesis, linked_gap_ids, rationale) |
+| `*.direction.json` | Full proposal (Name, Title, Related Work, References, Abstract, Experiments, Risk Factors) + `chosen_hypothesis`, `critique`, `evidence_summary` |
+| `*.experiment_plan.json` | `proposal_ref`, `metrics`, `baselines`, `datasets`, `implementation_steps`, `min_config` (hardware, min_data, framework, estimated_time) |
+
+You can export the lit review to CSV (e.g. from Excel), edit it, and reuse it as input for Phase 2.
+
+---
+
+### Idea generation (quick batch of ideas)
+
+- Set topic and number of ideas: `--topic-file ... --max-generations 5`
+- Use config file: `--config config/default.yaml`
+- Enable/disable search: `--no-arxiv`, `--pubmed`, `--openalex`
+- Validation: `--no-validate` to disable; `--novelty-scoring` to enable novelty scoring (optionally `--novelty-model`)
+- Default output: same directory as topic, filename `<topic-base>.json`; override with `--output output/ideas.json`
+
+**Citations:** Ideas and directions include **References** (author, year, title, url/doi). Related Work should cite as `[Author (Year)]`; each cited source must have an entry in References. Search results provide **CITE** lines for the LLM to copy.
+
+### Search tools (used by pipeline and idea generation)
+
+| Tool             | Default | Enable/disable              | Notes |
+|------------------|---------|-----------------------------|-------|
+| Semantic Scholar | On      | Always on                   | CS/ML; `S2_API_KEY` optional |
+| arXiv            | On      | `--no-arxiv` to disable     | Preprints |
+| PubMed           | Off     | `--pubmed` or YAML          | Medicine, biology |
+| OpenAlex         | Off     | `--openalex` or YAML        | Broad coverage, DOI; `OPENALEX_MAILTO` optional |
+
+Example: enable PubMed and OpenAlex:
 
 ```bash
 idea-generator --topic-file topics/example_icbinb.md --pubmed --openalex
 ```
 
-Hoặc trong `config/default.yaml`:
+Or in `config/default.yaml`:
 
 ```yaml
 pubmed_enabled: true
 openalex_enabled: true
 ```
 
-### Mở rộng giả thuyết (Hypothesis expansion)
+### Hypothesis expansion
 
-Từ **một topic** hoặc **một idea (JSON)** có thể sinh ra nhiều **giả thuyết con** (sub-hypotheses) dạng JSON, sau đó có thể dùng từng giả thuyết làm input cho pipeline sinh idea đầy đủ.
+From **a topic** or **one idea (JSON)** you can generate multiple **sub-hypotheses** as JSON, then use each as input for the pipeline or idea generation.
 
-**1. Expansion từ topic file:**
+**1. Expansion from a topic file:**
 
 ```bash
 idea-generator --topic-file topics/gan_optimization_adoe.md --expand-hypotheses
 ```
 
-- Đọc nội dung file topic, gọi LLM một lần để sinh 5–10 giả thuyết con.
-- Output mặc định: `output/<topic-base>.hypotheses.json` (hoặc thư mục trong `output_dir` của config).
-- Chỉ định file output: `--output path/to/hypotheses.json`.
+- Reads the topic file and calls the LLM once to produce 5–10 sub-hypotheses.
+- Default output: `output/<topic-base>.hypotheses.json` (or the directory from config `output_dir`).
+- Custom output: `--output path/to/hypotheses.json`.
 
-**2. Expansion từ một idea (file JSON):**
+**2. Expansion from one idea (JSON file):**
 
 ```bash
 idea-generator --expand-hypotheses --from-idea-json path/to/idea.json
 ```
 
-- `idea.json` có thể là **một object** (một idea) hoặc **mảng** (sẽ lấy phần tử đầu).
-- Object idea cần ít nhất `Title` và `Short Hypothesis`.
-- Output: `output/<idea-file-base>.hypotheses.json` trừ khi dùng `--output`.
+- `idea.json` can be a **single object** (one idea) or an **array** (first element is used).
+- The idea object must have at least `Title` and `Short Hypothesis`.
+- Output: `output/<idea-file-base>.hypotheses.json` unless `--output` is set.
 
-**3. Giới hạn số giả thuyết con:**
+**3. Limit number of sub-hypotheses:**
 
 ```bash
 idea-generator --topic-file topics/example.md --expand-hypotheses --max-sub-hypotheses 8
 ```
 
-**4. Kết hợp model và config:**
+**4. With model and config:**
 
 ```bash
 idea-generator --topic-file topics/example.md --expand-hypotheses --config config/default.yaml --model gpt-4o
 ```
 
-**Định dạng file hypotheses:** Mảng JSON, mỗi phần tử có ít nhất:
+**Hypotheses file format:** JSON array; each item has at least:
 
-- `Name`: định danh ngắn (lowercase, underscore).
-- `Short Hypothesis`: một hoặc hai câu mô tả giả thuyết.
+- `Name`: short identifier (lowercase, underscores).
+- `Short Hypothesis`: one or two sentences describing the hypothesis.
 
-Ví dụ:
+Example:
 
 ```json
 [
@@ -199,56 +220,41 @@ Ví dụ:
 ]
 ```
 
-Bạn có thể dùng từng item làm mô tả topic (ví dụ ghi ra file .md) rồi chạy `idea-generator --topic-file ...` để sinh idea đầy đủ cho từng giả thuyết.
+You can turn each item into a topic (e.g. write a .md file) and run idea generation or the pipeline for that direction.
 
 ---
 
 ## Configuration
 
-Cấu hình qua `config/default.yaml`; mọi giá trị có thể ghi đè bằng CLI.
+Configure via `config/default.yaml`; all values can be overridden by CLI flags.
 
-| Setting               | Default       | CLI Flag               | Mô tả |
-|-----------------------|---------------|------------------------|--------|
-| `model`               | `gpt-5.2`     | `--model`               | Model LLM dùng để sinh idea |
-| `max_generations`     | `3`           | `--max-generations`     | Số idea sinh ra mỗi lần chạy |
-| `num_reflections`     | `5`           | `--num-reflections`     | Số vòng reflection cho mỗi idea |
-| `output_dir`          | `output`      | –                       | Thư mục output (khi dùng config) |
-| `validate`            | `true`        | `--no-validate`         | Bật/tắt kiểm tra schema JSON |
-| `novelty_scoring`     | `false`       | `--novelty-scoring`     | Bật chấm điểm novelty |
-| `novelty_model`       | (cùng `model`)| `--novelty-model`       | Model dùng cho novelty |
-| `checkpoint_interval` | `1`           | –                       | Ghi checkpoint mỗi N idea |
-| `arxiv_enabled`       | `true`        | `--no-arxiv`            | Bật/tắt search arXiv |
-| `pubmed_enabled`      | `false`       | `--pubmed`              | Bật/tắt search PubMed |
-| `openalex_enabled`    | `false`       | `--openalex`            | Bật/tắt search OpenAlex |
-| `resume`              | `false`       | `--resume`              | Resume từ checkpoint |
-| `system_prompt_override` | `""`        | –                       | Ghi đè toàn bộ system prompt (để trống = dùng mặc định) |
+| Setting               | Default   | CLI Flag               | Description |
+|-----------------------|-----------|------------------------|-------------|
+| `model`               | `gpt-5.2` | `--model`              | LLM model for generation |
+| `max_generations`     | `3`       | `--max-generations`    | Number of ideas per run (idea generation) |
+| `num_reflections`     | `5`       | `--num-reflections`    | Reflection rounds per idea |
+| `output_dir`          | `output`  | –                      | Output directory (when using config) |
+| `validate`            | `true`    | `--no-validate`        | Enable/disable JSON schema validation |
+| `novelty_scoring`     | `false`   | `--novelty-scoring`    | Enable novelty scoring |
+| `novelty_model`       | (same as `model`) | `--novelty-model` | Model for novelty scoring |
+| `checkpoint_interval` | `1`       | –                      | Save checkpoint every N ideas |
+| `arxiv_enabled`       | `true`    | `--no-arxiv`           | Enable/disable arXiv search |
+| `pubmed_enabled`      | `false`   | `--pubmed`             | Enable/disable PubMed search |
+| `openalex_enabled`    | `false`   | `--openalex`           | Enable/disable OpenAlex search |
+| `resume`              | `false`   | `--resume`             | Resume from checkpoint |
+| `system_prompt_override` | `""`   | –                      | Override full system prompt (empty = default) |
+| `pipeline_mode`       | `false`   | `--pipeline` / `--phase` | Run research pipeline instead of idea generation |
+| `research_pipeline.literature_reflections` | `8` | – | Reflection rounds for Phase 1 |
+| `research_pipeline.direction_reflections`  | `5` | – | Reflection rounds for Phase 3 |
+| `research_pipeline.max_hypotheses`         | `10`| – | Max hypotheses for Phase 2 |
 
 ---
 
-## Output format (Định dạng output)
+## Output format
 
-File JSON là **mảng** các idea. Mỗi idea có dạng:
+**Idea generation** (`--topic-file` without `--pipeline`): one JSON file that is an **array** of ideas. Each idea has `Name`, `Title`, `Short Hypothesis`, `Related Work`, `References`, `Abstract`, `Experiments`, `Risk Factors and Limitations`; optional `novelty_score` when `--novelty-scoring` is enabled.
 
-```json
-[
-  {
-    "Name": "my_idea_name",
-    "Title": "An Interesting Research Title",
-    "Short Hypothesis": "...",
-    "Related Work": "...",
-    "References": [
-      { "author": "Author et al.", "year": "2023", "title": "Paper Title", "url": "https://..." }
-    ],
-    "Abstract": "...",
-    "Experiments": ["...", "..."],
-    "Risk Factors and Limitations": ["...", "..."],
-    "novelty_score": 0.75
-  }
-]
-```
-
-- **References**: có thể có hoặc không (optional). Nếu có, mỗi nguồn trích trong Related Work nên có entry tương ứng.
-- **novelty_score**: chỉ xuất hiện khi bật `--novelty-scoring`.
+**Research pipeline:** each phase writes one file (see the format table in [Research pipeline (4 phases)](#research-pipeline-4-phases)).
 
 ---
 
@@ -268,13 +274,14 @@ idea_recommendation/
 ├── idea_generator/
 │   ├── __init__.py
 │   ├── __main__.py
-│   ├── cli.py              # CLI (generate + expand)
-│   ├── core.py             # Generation loop, tools, validation
-│   ├── expansion.py        # Hypothesis expansion
-│   ├── llm.py              # Multi-provider LLM client
-│   ├── prompts.py          # Prompts + expansion prompts
-│   ├── validators.py       # JSON schema (incl. References)
-│   ├── novelty.py          # Novelty scoring
+│   ├── cli.py              # CLI (generate + expand + pipeline)
+│   ├── core.py              # Generation loop, tools, validation
+│   ├── research_pipeline.py # 4-phase pipeline (lit review -> hypotheses -> direction -> experiment plan)
+│   ├── expansion.py         # Hypothesis expansion
+│   ├── llm.py               # Multi-provider LLM client
+│   ├── prompts.py           # Prompts + expansion prompts
+│   ├── validators.py        # JSON schema (incl. References)
+│   ├── novelty.py           # Novelty scoring
 │   ├── tools/
 │   │   ├── base.py
 │   │   ├── semantic_scholar.py
@@ -302,23 +309,26 @@ idea_recommendation/
 
 ---
 
-## Tóm tắt lệnh thường dùng
+## Command summary
 
 ```bash
-# Sinh N idea từ topic
-idea-generator --topic-file topics/example.md --max-generations 5
+# Research pipeline: full or single phase
+idea-generator --topic-file topics/example.md --pipeline
+idea-generator --phase literature_review --topic-file topics/example.md
+idea-generator --phase hypotheses --from-literature output/example.lit_review.json
+idea-generator --phase direction --from-literature output/example.lit_review.json --from-hypotheses output/example.hypotheses.json
+idea-generator --phase experiment_plan --from-direction output/example.direction.json
 
-# Bật thêm PubMed + OpenAlex
-idea-generator --topic-file topics/example.md --pubmed --openalex
+# Idea generation (batch of ideas from topic)
+idea-generator --topic-file topics/example.md --max-generations 5 --output output/ideas.json
+idea-generator --topic-file topics/example.md --output output/ideas.json --resume   # resume
 
-# Chỉ sinh danh sách giả thuyết con từ topic
-idea-generator --topic-file topics/example.md --expand-hypotheses --output output/hypotheses.json
-
-# Sinh giả thuyết con từ một idea đã có (file JSON)
+# Hypothesis expansion (from topic or one idea JSON)
+idea-generator --topic-file topics/example.md --expand-hypotheses
 idea-generator --expand-hypotheses --from-idea-json output/my_idea.json
 
-# Resume sau khi bị gián đoạn
-idea-generator --topic-file topics/example.md --output output/ideas.json --resume
+# Optional: enable PubMed/OpenAlex, config, model
+idea-generator --topic-file topics/example.md --pubmed --openalex --config config/default.yaml --model gpt-4o
 ```
 
 ---

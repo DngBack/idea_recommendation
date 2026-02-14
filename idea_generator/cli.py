@@ -20,6 +20,7 @@ load_dotenv()
 from .core import IdeaGeneratorConfig, generate_ideas
 from .expansion import expand_hypotheses
 from .llm import AVAILABLE_LLMS, create_client
+from . import research_pipeline
 
 logger = logging.getLogger("idea_generator")
 
@@ -136,6 +137,38 @@ def build_parser() -> argparse.ArgumentParser:
         default=10,
         help="Max number of sub-hypotheses to generate when using --expand-hypotheses (default 10).",
     )
+    # Research pipeline (4-phase)
+    parser.add_argument(
+        "--pipeline",
+        action="store_true",
+        default=False,
+        help="Run the full 4-phase research pipeline (literature review -> hypotheses -> direction -> experiment plan).",
+    )
+    parser.add_argument(
+        "--phase",
+        type=str,
+        default=None,
+        choices=["literature_review", "hypotheses", "direction", "experiment_plan"],
+        help="Run only one pipeline phase; use with --from-literature, --from-hypotheses, or --from-direction as needed.",
+    )
+    parser.add_argument(
+        "--from-literature",
+        type=str,
+        default=None,
+        help="Path to lit_review.json; required for --phase hypotheses, optional for --phase direction.",
+    )
+    parser.add_argument(
+        "--from-hypotheses",
+        type=str,
+        default=None,
+        help="Path to hypotheses.json; required for --phase direction.",
+    )
+    parser.add_argument(
+        "--from-direction",
+        type=str,
+        default=None,
+        help="Path to direction.json; required for --phase experiment_plan.",
+    )
     parser.add_argument(
         "--verbose", "-v",
         action="store_true",
@@ -195,12 +228,90 @@ def main(argv: list[str] | None = None) -> None:
         logger.info("Wrote %d sub-hypotheses to %s", len(hypotheses), output_path)
         return
 
-    # ---------- Normal idea generation ----------
+    # ---------- Research pipeline (full or single phase) ----------
+    cfg_dict = _load_yaml_config(args.config) if args.config else {}
+    if args.pipeline or args.phase:
+        rp_cfg = cfg_dict.get("research_pipeline") or {}
+        config = IdeaGeneratorConfig(
+            model=args.model or cfg_dict.get("model", IdeaGeneratorConfig.model),
+            max_generations=cfg_dict.get("max_generations", IdeaGeneratorConfig.max_generations),
+            num_reflections=cfg_dict.get("num_reflections", IdeaGeneratorConfig.num_reflections),
+            output_dir=cfg_dict.get("output_dir", IdeaGeneratorConfig.output_dir),
+            validate=not args.no_validate and cfg_dict.get("validate", True),
+            novelty_scoring=args.novelty_scoring or cfg_dict.get("novelty_scoring", False),
+            novelty_model=args.novelty_model or cfg_dict.get("novelty_model", ""),
+            checkpoint_interval=cfg_dict.get("checkpoint_interval", IdeaGeneratorConfig.checkpoint_interval),
+            arxiv_enabled=not args.no_arxiv and cfg_dict.get("arxiv_enabled", True),
+            pubmed_enabled=args.pubmed or cfg_dict.get("pubmed_enabled", False),
+            openalex_enabled=args.openalex or cfg_dict.get("openalex_enabled", False),
+            resume=args.resume or cfg_dict.get("resume", False),
+            system_prompt_override=cfg_dict.get("system_prompt_override", ""),
+            pipeline_mode=True,
+            pipeline_literature_reflections=rp_cfg.get("literature_reflections", IdeaGeneratorConfig.pipeline_literature_reflections),
+            pipeline_direction_reflections=rp_cfg.get("direction_reflections", IdeaGeneratorConfig.pipeline_direction_reflections),
+            pipeline_max_hypotheses=rp_cfg.get("max_hypotheses", IdeaGeneratorConfig.pipeline_max_hypotheses),
+        )
+        output_dir = config.output_dir
+        if args.phase:
+            if args.phase == "literature_review":
+                if not args.topic_file:
+                    logger.error("--topic-file is required for --phase literature_review.")
+                    sys.exit(1)
+                out_path = args.output or str(Path(output_dir) / f"{Path(args.topic_file).stem}.lit_review.json")
+                research_pipeline.run_literature_review(args.topic_file, config, out_path)
+                logger.info("Phase 1 complete: %s", out_path)
+            elif args.phase == "hypotheses":
+                from_lit = args.from_literature
+                if not from_lit:
+                    logger.error("--from-literature is required for --phase hypotheses.")
+                    sys.exit(1)
+                if not Path(from_lit).exists():
+                    logger.error("File not found: %s", from_lit)
+                    sys.exit(1)
+                out_path = args.output or str(Path(output_dir) / f"{Path(from_lit).stem.replace('.lit_review', '')}.hypotheses.json")
+                research_pipeline.run_gap_hypotheses(from_lit, config, out_path)
+                logger.info("Phase 2 complete: %s", out_path)
+            elif args.phase == "direction":
+                from_hyp = args.from_hypotheses
+                if not from_hyp:
+                    logger.error("--from-hypotheses is required for --phase direction.")
+                    sys.exit(1)
+                if not Path(from_hyp).exists():
+                    logger.error("File not found: %s", from_hyp)
+                    sys.exit(1)
+                from_lit = args.from_literature
+                if not from_lit:
+                    from_lit = str(Path(from_hyp).parent / (Path(from_hyp).stem.replace(".hypotheses", "") + ".lit_review.json"))
+                if not Path(from_lit).exists():
+                    logger.error("Literature review file not found: %s (use --from-literature to specify)", from_lit)
+                    sys.exit(1)
+                out_path = args.output or str(Path(output_dir) / f"{Path(from_hyp).stem.replace('.hypotheses', '')}.direction.json")
+                research_pipeline.run_direction(from_lit, from_hyp, config, out_path)
+                logger.info("Phase 3 complete: %s", out_path)
+            else:
+                from_dir = args.from_direction
+                if not from_dir:
+                    logger.error("--from-direction is required for --phase experiment_plan.")
+                    sys.exit(1)
+                if not Path(from_dir).exists():
+                    logger.error("File not found: %s", from_dir)
+                    sys.exit(1)
+                out_path = args.output or str(Path(output_dir) / f"{Path(from_dir).stem.replace('.direction', '')}.experiment_plan.json")
+                research_pipeline.run_experiment_plan(from_dir, config, out_path)
+                logger.info("Phase 4 complete: %s", out_path)
+        else:
+            if not args.topic_file:
+                logger.error("--topic-file is required for --pipeline.")
+                sys.exit(1)
+            paths = research_pipeline.run_full_research_pipeline(args.topic_file, config, output_dir)
+            logger.info("Pipeline complete. Artifacts: %s", paths)
+        return
+
+    # ---------- Normal (legacy) idea generation ----------
     if not args.topic_file:
         logger.error("--topic-file is required for idea generation.")
         sys.exit(1)
 
-    cfg_dict = _load_yaml_config(args.config) if args.config else {}
     config = IdeaGeneratorConfig(
         model=args.model or cfg_dict.get("model", IdeaGeneratorConfig.model),
         max_generations=args.max_generations if args.max_generations is not None else cfg_dict.get("max_generations", IdeaGeneratorConfig.max_generations),

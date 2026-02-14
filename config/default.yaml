@@ -43,3 +43,11 @@ resume: false
 
 # Override the system prompt entirely (leave empty to use the built-in prompt)
 system_prompt_override: ""
+
+# Research pipeline (4-phase): literature review -> hypotheses -> direction -> experiment plan
+# Use --pipeline to run full pipeline, or --phase <name> with --from-* for a single phase
+pipeline_mode: false
+research_pipeline:
+  literature_reflections: 8
+  direction_reflections: 5
+  max_hypotheses: 10

@@ -56,6 +56,11 @@ class IdeaGeneratorConfig:
     resume: bool = False
     # Allow overriding the system prompt entirely (empty = use default)
     system_prompt_override: str = ""
+    # Research pipeline (4-phase) settings
+    pipeline_mode: bool = False
+    pipeline_literature_reflections: int = 8
+    pipeline_direction_reflections: int = 5
+    pipeline_max_hypotheses: int = 10
 
 
 # ---------------------------------------------------------------------------

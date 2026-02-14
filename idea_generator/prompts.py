@@ -138,7 +138,196 @@ Please fix the issues and finalize the idea again using the FinalizeIdea action.
 """
 
 # ---------------------------------------------------------------------------
-# Hypothesis expansion (Phase 3)
+# Research pipeline – Phase 1: Literature Review
+# ---------------------------------------------------------------------------
+
+FINALIZE_LITERATURE_REVIEW_TOOL = {
+    "name": "FinalizeLiteratureReview",
+    "description": """Finalize the literature review by providing the structured review.
+
+The payload must be a JSON object with:
+- "topic_summary": Short summary of the research topic (string).
+- "entries": Array of entry objects. Each entry has:
+  - "source": Paper or method name (string).
+  - "citation": Object with "author", "year", "title", and optionally "url" or "doi".
+  - "approach_summary": What the method does (string).
+  - "strengths": Array of strings.
+  - "weaknesses": Array of strings.
+  - "research_gaps": Array of strings (gaps this work does not address).
+- "synthesis": Overall synthesis paragraph: trends and common gaps (string).
+
+Use ARGUMENTS as {"literature_review": { ... }} with the above structure.""",
+}
+
+
+def get_literature_review_system_prompt(tool_descriptions: str, tool_names_str: str) -> str:
+    """System prompt for Phase 1: literature reviewer."""
+    return f"""You are an expert literature reviewer. Your task is to conduct a structured literature review on the given research topic.
+
+Use the topic description and keywords to search for relevant papers and methods. For each important paper or approach you find:
+1. Summarize the approach.
+2. List strengths and weaknesses clearly.
+3. Identify research gaps (what the work does not address or where it falls short).
+
+You have access to the following tools:
+
+{tool_descriptions}
+
+Respond in the following format:
+
+ACTION:
+<Exactly one of {tool_names_str}>
+
+ARGUMENTS:
+<For search tools: {{"query": "your search query"}}. For FinalizeLiteratureReview: {{"literature_review": {{ "topic_summary": "...", "entries": [...], "synthesis": "..." }}}}>
+
+After you have gathered enough papers (at least 3–5 distinct approaches), finalize the review with FinalizeLiteratureReview. Ensure every entry has source, citation (author, year, title, url or doi), approach_summary, strengths, weaknesses, and research_gaps. Write a concise synthesis paragraph."""
+
+
+LITERATURE_REVIEW_INITIAL_PROMPT = """Research topic:
+
+{topic_content}
+
+Conduct a structured literature review. Start by searching for relevant papers and methods using the keywords and topic above. For each relevant work, record the approach summary, strengths, weaknesses, and research gaps. When you have covered the main lines of work, finalize the review using FinalizeLiteratureReview with the required JSON structure."""
+
+
+LITERATURE_REVIEW_REFLECTION_PROMPT = """Round {current_round}/{num_reflections}.
+
+Consider the literature you have gathered. Add or refine entries (approach summary, strengths, weaknesses, research_gaps). Ensure the synthesis paragraph captures overall trends and common gaps.
+
+Results from your last action:
+
+{last_tool_results}
+
+When ready, use FinalizeLiteratureReview with the complete literature_review JSON. If you need more papers, use a search tool first."""
+
+
+# ---------------------------------------------------------------------------
+# Research pipeline – Phase 2: Gap and Hypotheses
+# ---------------------------------------------------------------------------
+
+GAP_HYPOTHESES_PROMPT = """Based on the following structured literature review, identify research gaps and propose testable hypotheses.
+
+Literature review:
+
+{lit_review_json}
+
+Tasks:
+1. List 3–8 clear research gaps. For each gap provide: id (short identifier, e.g. "gap_1"), description, related_entries (array of source names or indices from the review), and optionally priority ("high" / "medium" / "low").
+2. Propose 5–{max_hypotheses} hypotheses that could be investigated. Each hypothesis must have: name (lowercase with underscores), short_hypothesis (1–3 sentences), linked_gap_ids (array of gap ids this hypothesis addresses), rationale (why this is a good direction).
+
+Respond with a single JSON object only (no markdown, no explanation):
+{{"gaps": [{{"id": "...", "description": "...", "related_entries": [...], "priority": "..."}}, ...], "hypotheses": [{{"name": "...", "short_hypothesis": "...", "linked_gap_ids": [...], "rationale": "..."}}, ...]}}"""
+
+
+# ---------------------------------------------------------------------------
+# Research pipeline – Phase 3: Direction and Critique
+# ---------------------------------------------------------------------------
+
+FINALIZE_DIRECTION_TOOL = {
+    "name": "FinalizeDirection",
+    "description": """Finalize the research direction (detailed proposal) by providing the full proposal with critique and evidence.
+
+The payload must include "direction" with an object that has:
+- All fields of a research idea: Name, Title, Short Hypothesis, Related Work, References, Abstract, Experiments, Risk Factors and Limitations.
+- "chosen_hypothesis": Object with "name", "short_hypothesis" (reference to the hypothesis from Phase 2).
+- "critique": String or array of strings (criticism and counter-arguments considered).
+- "evidence_summary": String (main evidence from literature supporting this direction).
+
+Use ARGUMENTS as {"direction": { ... }}. Cite sources in Related Work as [Author (Year)] and include every cited work in References with author, year, title, url or doi.""",
+}
+
+
+def get_direction_system_prompt(tool_descriptions: str, tool_names_str: str) -> str:
+    """System prompt for Phase 3: choose direction and write detailed proposal."""
+    return f"""You are a senior AI researcher. Your task is to pick one research direction from the given hypotheses, deepen it with further literature if needed, write a critique (counter-arguments and limitations considered), summarize supporting evidence, and produce a detailed research proposal.
+
+You have access to the following tools:
+
+{tool_descriptions}
+
+Respond in the following format:
+
+ACTION:
+<Exactly one of {tool_names_str}>
+
+ARGUMENTS:
+<For search tools: {{"query": "..."}}. For FinalizeDirection: {{"direction": {{ "Name": "...", "Title": "...", "Short Hypothesis": "...", "Related Work": "...", "References": [...], "Abstract": "...", "Experiments": "...", "Risk Factors and Limitations": "...", "chosen_hypothesis": {{ "name": "...", "short_hypothesis": "..." }}, "critique": "...", "evidence_summary": "..." }}}}>
+
+Before finalizing, you must have used at least one search tool. Ensure the proposal is feasible for an academic lab and publishable at top venues."""
+
+
+DIRECTION_INITIAL_PROMPT = """Literature review synthesis and context:
+
+{lit_review_synthesis}
+
+Candidate hypotheses to choose from:
+
+{hypotheses_list}
+
+Select ONE hypothesis (or a concrete combination) as your research direction. Search for additional papers if needed to strengthen related work and evidence. Then write:
+1. A detailed proposal (Name, Title, Short Hypothesis, Related Work, References, Abstract, Experiments, Risk Factors).
+2. chosen_hypothesis: which hypothesis you chose.
+3. critique: key counter-arguments and limitations you considered.
+4. evidence_summary: main evidence from the literature supporting this direction.
+
+When ready, call FinalizeDirection with the full direction JSON."""
+
+
+DIRECTION_REFLECTION_PROMPT = """Round {current_round}/{num_reflections}.
+
+Refine your proposal based on the new information. Strengthen related work, critique, and evidence. Ensure the direction JSON is complete and well-formatted.
+
+Results from your last action:
+
+{last_tool_results}
+
+When satisfied, use FinalizeDirection with the complete direction payload."""
+
+
+# ---------------------------------------------------------------------------
+# Research pipeline – Phase 4: Experiment Plan
+# ---------------------------------------------------------------------------
+
+EXPERIMENT_PLAN_PROMPT = """Given the following research direction (proposal), produce a detailed experiment plan.
+
+Research direction:
+
+{direction_json}
+
+Produce a JSON object with this exact structure (no markdown, no explanation):
+
+{{
+  "proposal_ref": {{ "name": "<Name from direction>", "title": "<Title from direction>" }},
+  "metrics": [
+    {{ "name": "...", "description": "...", "primary": true_or_false }},
+    ...
+  ],
+  "baselines": [
+    {{ "name": "...", "description": "...", "source": "...", "citation": "..." }},
+    ...
+  ],
+  "datasets": [
+    {{ "name": "...", "description": "...", "size_or_source": "...", "license_or_access": "..." }},
+    ...
+  ],
+  "implementation_steps": [
+    {{ "order": 1, "step": "...", "description": "...", "deliverables": "..." }},
+    ...
+  ],
+  "min_config": {{
+    "hardware": "e.g. single GPU, 24GB VRAM",
+    "min_data": "e.g. CIFAR-10 or 10k samples",
+    "framework": "e.g. PyTorch 2.0",
+    "estimated_time": "e.g. 2-3 weeks for main experiments"
+  }}
+}}
+
+Be specific: metrics should include primary and secondary; baselines must be named methods from the literature; datasets with size and access; implementation steps in order with clear deliverables; min_config must be lab-feasible."""
+
+
+# ---------------------------------------------------------------------------
+# Hypothesis expansion (Phase 3 – legacy)
 # ---------------------------------------------------------------------------
 
 HYPOTHESIS_EXPANSION_FROM_TOPIC = """Given the following research topic description, list distinct sub-hypotheses or theory variants that could be investigated independently. Each should be a concrete, researchable direction.
