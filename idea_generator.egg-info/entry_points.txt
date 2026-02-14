@@ -1,0 +1,2 @@
+[console_scripts]
+idea-generator = idea_generator.cli:main

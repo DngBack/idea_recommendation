@@ -32,6 +32,10 @@ AVAILABLE_LLMS = [
     "gpt-4.1-2025-04-14",
     "gpt-4.1-mini",
     "gpt-4.1-mini-2025-04-14",
+    # GPT-5.2 (reasoning / thinking)
+    "gpt-5.2",
+    "gpt-5.2-2025-12-11",
+    "gpt-5.2-pro",
     # OpenAI reasoning
     "o1",
     "o1-2024-12-17",
@@ -204,17 +208,24 @@ def get_response_from_llm(
         new_msg_history = new_msg_history + [{"role": "assistant", "content": content}]
         return content, new_msg_history
 
-    # --- GPT models ---
+    # --- GPT models (including gpt-5.2 / gpt-5.2-pro with reasoning "thinking") ---
     if "gpt" in model:
         new_msg_history = msg_history + [{"role": "user", "content": prompt}]
-        response = client.chat.completions.create(
-            model=model,
-            messages=[{"role": "system", "content": system_message}, *new_msg_history],
-            temperature=temperature,
-            max_tokens=max_tokens,
-            n=1,
-            seed=0,
-        )
+        kwargs: dict[str, Any] = {
+            "model": model,
+            "messages": [{"role": "system", "content": system_message}, *new_msg_history],
+            "n": 1,
+            "seed": 0,
+        }
+        # GPT-5.2 / gpt-5.2-pro: only temperature=1 supported; use max_completion_tokens + reasoning
+        if model.startswith("gpt-5.2"):
+            kwargs["temperature"] = 1
+            kwargs["max_completion_tokens"] = max_tokens
+            kwargs["reasoning_effort"] = "high"
+        else:
+            kwargs["temperature"] = temperature
+            kwargs["max_tokens"] = max_tokens
+        response = client.chat.completions.create(**kwargs)
         content = response.choices[0].message.content
         new_msg_history = new_msg_history + [{"role": "assistant", "content": content}]
         return content, new_msg_history

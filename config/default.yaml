@@ -5,10 +5,11 @@
 #   idea-generator --topic-file topic.md --model gpt-4o --max-generations 10
 
 # LLM model to use for idea generation
-model: "gpt-4o-2024-05-13"
+# Examples: gpt-4o-2024-05-13, gpt-5.2 (thinking), gpt-5.2-pro, claude-3-5-sonnet-20241022
+model: "gpt-5.2"
 
 # Maximum number of ideas to generate in one run
-max_generations: 20
+max_generations: 3
 
 # Number of reflection / refinement rounds per idea
 num_reflections: 5

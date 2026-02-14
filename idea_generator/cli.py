@@ -10,6 +10,10 @@ import logging
 import sys
 
 import yaml
+from dotenv import load_dotenv
+
+# Load .env from current directory so OPENAI_API_KEY etc. are set without manual export
+load_dotenv()
 
 from .core import IdeaGeneratorConfig, generate_ideas
 from .llm import AVAILABLE_LLMS

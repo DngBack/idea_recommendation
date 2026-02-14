@@ -144,6 +144,7 @@ def generate_ideas(
             last_tool_results = ""
             idea_finalized = False
             msg_history: list = []
+            parse_retried_for_idea = False
 
             for reflection_round in range(config.num_reflections):
                 # Build prompt
@@ -167,7 +168,7 @@ def generate_ideas(
                     msg_history=msg_history,
                 )
 
-                # Parse ACTION / ARGUMENTS
+                # Parse ACTION / ARGUMENTS (with optional one-time retry on format failure)
                 try:
                     action, arguments_text = _parse_action_arguments(response_text)
                     logger.info("Round %d – action=%s", reflection_round + 1, action)
@@ -215,6 +216,15 @@ def generate_ideas(
 
                 except Exception:
                     logger.error("Failed to parse LLM response:\n%s", traceback.format_exc())
+                    raw_preview = response_text[-2000:] if len(response_text) > 2000 else response_text
+                    logger.error("Raw LLM response (preview):\n%s", raw_preview)
+                    if not parse_retried_for_idea:
+                        parse_retried_for_idea = True
+                        last_tool_results = (
+                            "Your previous response could not be parsed. You must reply with exactly "
+                            "the lines 'ACTION:' and 'ARGUMENTS:' (with the action name and JSON arguments). Try again."
+                        )
+                        continue
                     break
 
             if not idea_finalized:
@@ -249,21 +259,45 @@ def generate_ideas(
 # ---------------------------------------------------------------------------
 
 def _parse_action_arguments(response_text: str) -> tuple[str, str]:
-    """Extract ACTION and ARGUMENTS from the LLM response."""
-    action_pattern = r"ACTION:\s*(.*?)\s*(?:ARGUMENTS:|$)"
-    arguments_pattern = r"ARGUMENTS:\s*(.*?)(?:$|\nTHOUGHT:|\n$)"
+    """Extract ACTION and ARGUMENTS from the LLM response. Tries multiple patterns for robustness."""
+    # Normalize: strip and treat common markdown/whitespace
+    text = response_text.strip()
 
-    action_match = re.search(action_pattern, response_text, re.DOTALL | re.IGNORECASE)
-    arguments_match = re.search(arguments_pattern, response_text, re.DOTALL | re.IGNORECASE)
+    # Try several action patterns (strict first, then relaxed)
+    action_patterns = [
+        r"ACTION:\s*(.*?)\s*(?:ARGUMENTS:|$)",
+        r"\*\*ACTION:\*\*\s*(.*?)\s*(?:\*\*ARGUMENTS:\*\*|ARGUMENTS:|$)",
+        r"\"ACTION\":\s*\"(.*?)\"",
+        r"(?:^|\n)\s*ACTION\s*:\s*(.+?)(?=\n\s*ARGUMENTS|\n\s*\*\*ARGUMENTS|$)",
+    ]
+    action_match = None
+    for pat in action_patterns:
+        action_match = re.search(pat, text, re.DOTALL | re.IGNORECASE)
+        if action_match:
+            break
+    # Fallback: line that starts with ACTION (case-insensitive)
+    if not action_match:
+        for line in text.splitlines():
+            if re.match(r"^\s*ACTION\s*:\s*", line, re.IGNORECASE):
+                action_match = re.match(r"^\s*ACTION\s*:\s*(.+)", line, re.IGNORECASE)
+                break
 
     if not action_match:
         raise ValueError("Could not find ACTION in response.")
 
-    action = action_match.group(1).strip().strip('"').strip("'")
+    action = action_match.group(1).strip().strip('"').strip("'").strip()
 
+    # Arguments: same idea, multiple patterns
+    arguments_patterns = [
+        r"ARGUMENTS:\s*(.*?)(?:$|\n\s*THOUGHT:|\n\s*$)",
+        r"\*\*ARGUMENTS:\*\*\s*(.*?)(?:$|\n)",
+    ]
     arguments_text = ""
-    if arguments_match:
-        arguments_text = arguments_match.group(1).strip()
+    for pat in arguments_patterns:
+        arguments_match = re.search(pat, text, re.DOTALL | re.IGNORECASE)
+        if arguments_match:
+            arguments_text = arguments_match.group(1).strip()
+            break
 
     # Unwrap ```json blocks
     json_block = re.search(r"```json\s*(.*?)\s*```", arguments_text, re.DOTALL)
