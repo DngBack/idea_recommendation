@@ -1,0 +1,128 @@
+[
+    {
+        "Name": "adaptive_lr_intrinsic_dim",
+        "Title": "Adaptive Learning Rate Schedules Based on Network Intrinsic Dimensionality",
+        "Short Hypothesis": "The intrinsic dimensionality of a neural network's parameter space can serve as a dynamic signal for adjusting learning rates, improving training efficiency and generalization.",
+        "Related Work": "Current learning rate schedules adjust learning rates based on epochs or gradient statistics [Smith (2017)]. Recent work has explored the concept of intrinsic dimensionality in neural networks [Li et al. (2018); Ansuini et al. (2019)], but has not linked it directly to learning rate adaptation. Adaptive learning rates like AdaGrad and Adam adjust based on gradient statistics, not intrinsic properties [Kingma and Ba (2015)]. Our proposal uniquely combines these approaches by using intrinsic dimensionality as a signal for learning rate adjustments.",
+        "References": [
+            {
+                "author": "Jieun Park, Dokkyun Yi, Sangmin Ji",
+                "year": "2020",
+                "title": "A Novel Learning Rate Schedule in Optimization for Neural Networks and It's Convergence",
+                "url": "https://doi.org/10.3390/sym12040660"
+            },
+            {
+                "author": "Yuanhao Xiong, Li-Cheng Lan, Xiangning Chen, Ruochen Wang, Cho-Jui Hsieh",
+                "year": "2022",
+                "title": "Learning to Schedule Learning rate with Graph Neural Networks",
+                "url": "https://www.semanticscholar.org/paper/a4bea03d7a62917bf46ece2eb1e24f1fcacbc6ed"
+            },
+            {
+                "author": "Zhao Song, Chiwun Yang",
+                "year": "2023",
+                "title": "An Automatic Learning Rate Schedule Algorithm for Achieving Faster Convergence and Steeper Descent",
+                "url": "https://doi.org/10.48550/arXiv.2310.11291"
+            },
+            {
+                "author": "Kang Wang, Tao Sun, Y. Dou",
+                "year": "2021",
+                "title": "An Adaptive Learning Rate Schedule for SIGNSGD Optimizer in Neural Networks",
+                "url": "https://doi.org/10.1007/s11063-021-10658-9"
+            },
+            {
+                "author": "Chengli Tan, Jiangshe Zhang, Junmin Liu, Zixiang Zhao",
+                "year": "2024",
+                "title": "Low-dimensional intrinsic dimension reveals a phase transition in gradient-based learning of deep neural networks",
+                "url": "https://doi.org/10.1007/s13042-024-02244-x"
+            }
+        ],
+        "Abstract": "This research proposes a novel learning rate schedule for neural network training that dynamically adapts based on the network's intrinsic dimensionality. The intrinsic dimensionality of a neural network's parameter space can be estimated using techniques like PCA on activation patterns or gradient subspaces. Our hypothesis is that by monitoring changes in intrinsic dimensionality, we can adjust learning rates to enhance training efficiency and improve generalization performance. Specifically, we propose a schedule where the learning rate is increased when the intrinsic dimensionality expands (indicating exploration of new parameter configurations) and decreased when it contracts (indicating convergence). We will evaluate our method on standard benchmarks (e.g., CIFAR-10, ImageNet) and compare it against traditional learning rate schedules and adaptive learning rate optimizers. We expect this approach to yield faster convergence and better generalization by aligning learning rate adjustments with the network's effective capacity during training.",
+        "Experiments": [
+            {
+                "name": "Evaluation Metrics",
+                "description": "Train on CIFAR-10 and ImageNet, compare training time, validation accuracy, and generalization gap."
+            },
+            {
+                "name": "Baseline Comparisons",
+                "description": "Compare against step decay, cosine annealing, and optimizers like Adam."
+            },
+            {
+                "name": "Intrinsic Dimensionality Calculation",
+                "description": "Use PCA on activations, gradient subspaces, and local loss landscape analysis."
+            },
+            {
+                "name": "Ablation Studies",
+                "description": "Evaluate the effect of different dimensionality estimation methods and their impact on learning rate adjustments."
+            },
+            {
+                "name": "Sensitivity Analysis",
+                "description": "Investigate the sensitivity of the method to initial learning rate and other hyperparameters."
+            }
+        ],
+        "Risk Factors and Limitations": [
+            "Dimensionality Estimation Overhead: Estimating intrinsic dimensionality may introduce computational overhead.",
+            "Noisy Estimations: Intrinsic dimensionality estimates may be noisy, potentially leading to unstable learning rate adjustments.",
+            "Generalization Across Architectures: The effectiveness of the schedule may vary across different network architectures and tasks."
+        ]
+    },
+    {
+        "Name": "adoe_gan",
+        "Title": "ADOE: Adaptive Damped Optimistic Extragradient to Control Rotational Dynamics in GAN Training",
+        "Short Hypothesis": "GAN instability is often driven not just by stochasticity but by intrinsically rotational saddle-point dynamics of the game vector field F(θ,φ)=[∇θV;−∇φV]. Extragradient / optimistic methods reduce cycling, but still require careful learning-rate ratios and are brittle under noise. If we (i) keep the last-iterate benefits of optimistic extragradient updates and (ii) add a *selectively activated* damping term that targets the rotational component—using an online, cheap oscillation signal to adapt λt—then GANs will train more stably (fewer divergences/mode collapses) and reach target FID faster with less hyperparameter sensitivity than fixed EG/OMD variants. This setting is ideal because GAN training provides a real, high-dimensional, noisy min–max game where rotational behavior is ubiquitous, and purely theoretical answers (e.g., monotone VI) do not settle practical stability under adaptive optimizers and nonconvex-nonconcave losses.",
+        "Related Work": "Optimistic mirror descent / optimistic gradient methods have been proposed to mitigate cycling and improve last-iterate behavior in saddle-point problems and GANs [Mertikopoulos (2018)], and extragradient-style methods have strong theoretical guarantees in variational inequality settings [Cai (2022)]. Separately, variance-reduced extragradient improves GAN stability by reducing stochastic noise [Chavdarova (2019)]. However, these methods typically use fixed algorithmic structure (and fixed implicit damping), leaving practitioners to tune learning rates / TTUR ratios to manage rotation. Our proposal is distinct in *explicitly measuring rotational/oscillatory dynamics online* and *adapting a dedicated damping regularizer on demand*. It is not a trivial extension of optimism/EG: the key novelty is an adaptive control loop that activates a Jacobian-based damping direction only when rotation is detected, aiming to preserve fast progress when dynamics are well-behaved while suppressing limit cycles when they are not.",
+        "References": [
+            {
+                "author": "Panayotis Mertikopoulos, Bruno Lecouat, Houssam Zenati, Chuan-Sheng Foo, Vijay Chandrasekhar, Georgios Piliouras",
+                "year": "2018",
+                "title": "Optimistic mirror descent in saddle-point problems: Going the extra (gradient) mile",
+                "url": "http://arxiv.org/abs/1807.02629v2"
+            },
+            {
+                "author": "Tatjana Chavdarova, Gauthier Gidel, François Fleuret, Simon Lacoste-Julien",
+                "year": "2019",
+                "title": "Reducing Noise in GAN Training with Variance Reduced Extragradient",
+                "url": "http://arxiv.org/abs/1904.08598v3"
+            },
+            {
+                "author": "Yang Cai, Argyris Oikonomou, Weiqiang Zheng",
+                "year": "2022",
+                "title": "Tight Last-Iterate Convergence of the Extragradient and the Optimistic Gradient Descent-Ascent Algorithm for Constrained Monotone Variational Inequalities",
+                "url": "http://arxiv.org/abs/2204.09228v3"
+            }
+        ],
+        "Abstract": "We propose Adaptive Damped Optimistic Extragradient (ADOE), an optimization method for stabilizing GAN training by explicitly controlling the rotational dynamics inherent to min–max games. Let z=(θ,φ) and define the game vector field F(z)=[∇θV(θ,φ);−∇φV(θ,φ)]. While optimistic / extragradient methods can reduce cycling, practical GAN training remains sensitive to learning-rate ratios and stochastic gradient noise, often exhibiting limit cycles, gradient explosions, or collapse. ADOE augments an optimistic extragradient update with a selectively activated damping direction that targets rotation: a “consensus-like” regularizer based on the squared norm of the vector field, R(z)=1/2||F(z)||^2, whose gradient is ∇R(z)=J(z)^T F(z) (a Jacobian-transposed vector product computable via automatic differentiation). Crucially, ADOE adapts the damping coefficient λt online using a cheap oscillation proxy (e.g., cosine disagreement between successive F(z) directions and relative growth in ||F||), increasing λt when dynamics become rotational and decreasing it otherwise. This yields a simple control mechanism: preserve fast progress in near-monotone regimes, suppress cycles in rotational regimes. We will evaluate ADOE on CIFAR-10 and CelebA with hinge and WGAN-GP losses, focusing on FID/IS vs wall-clock and robustness across seeds and hyperparameters. The aim is a practical, reproducible optimization contribution that bridges game dynamics diagnostics with adaptive stabilization.",
+        "Experiments": [
+            {
+                "name": "Algorithm specification + pseudocode",
+                "description": "Define z=(θ,φ), F(z)=[∇θV;−∇φV]. Use TTUR step sizes ηθ, ηφ. (1) Lookahead: z~ = zt − η ⊙ Ft where η ⊙ applies (ηθ,ηφ) blockwise. (2) Optimistic extragradient step: z_EG = zt − η ⊙ (2F(z~) − F(zt)). (3) Damping step: z_{t+1} = z_EG − η ⊙ (λt * ∇z (1/2||F(zt)||^2)). Compute ∇z(1/2||F(zt)||^2)=J(zt)^T F(zt) via one extra higher-order autodiff pass. Adaptive λt: maintain EMA of rot_t = 1 − cos(Ft,F_{t−1}) + α·max(0,||Ft||/||F_{t−1}||−1); set λt = clip(λ_{t−1} + β(rot_t−τ), 0, λmax)."
+            },
+            {
+                "name": "Core GAN benchmarks (small-scale, reproducible)",
+                "description": "Train ResNet GAN (or SNGAN-style) on CIFAR-10 and CelebA at 64x64. Losses: hinge GAN and WGAN-GP. Compare methods: Adam/TTUR baseline, OGDA/OMD-style update (no damping), extragradient-only, SVRE-style extragradient baseline [Chavdarova (2019)] where feasible, and ADOE. Report: FID/IS vs iteration and vs wall-clock, steps-to-FID target (e.g., FID<20 on CIFAR-10), failure rate across 5–10 seeds, and discriminator/generator loss statistics."
+            },
+            {
+                "name": "Ablations required by the hypothesis",
+                "description": "A1: EG only vs EG+optimism vs EG+fixed damping vs EG+adaptive damping (full ADOE). A2: λ fixed grid vs adaptive λt. A3: rotation proxy variants: cosine(Ft,Ft−1) only; norm-growth only; combined. A4: damping frequency: every step vs only when rot_t>τ (gated)."
+            },
+            {
+                "name": "Hyperparameter sensitivity + robustness",
+                "description": "Sweep TTUR ratios (ηD/ηG) and base learning rates; evaluate performance drop and divergence frequency. Sweep batch size (e.g., 64, 128, 256). Quantify robustness via worst-case FID across the sweep and area-under-curve of FID vs steps."
+            },
+            {
+                "name": "Mechanistic validation of 'rotation control'",
+                "description": "Track diagnostics over training: (i) rot_t proxy, (ii) ||F||, (iii) alignment between update direction and Ft, (iv) estimated local cycling via sign changes / autocorrelation of Ft. Show that adaptive λt correlates with increased rotation and that enabling damping reduces rot_t and improves last-iterate stability without permanently shrinking steps."
+            },
+            {
+                "name": "Compute / overhead accounting",
+                "description": "Measure per-iteration wall-clock and memory overhead of the damping term (higher-order autodiff). Compare: ADOE every-step damping vs gated damping (only when rot_t>τ) to show a practical Pareto trade-off."
+            }
+        ],
+        "Risk Factors and Limitations": [
+            "Second-order overhead: computing J^T F requires higher-order autodiff; may be too slow for large discriminators unless gated or done intermittently.",
+            "Proxy quality: rotation metrics based on successive gradients can be noisy under minibatch stochasticity; may require EMA smoothing and careful thresholds.",
+            "Over-damping: if λt ramps up too aggressively, convergence may slow or bias training dynamics; needs stable control parameters (β, τ, λmax).",
+            "Interaction with Adam: adaptive moment estimates can confound the interpretation of Ft; may need SGD-like baselines and/or apply ADOE in a preconditioned space.",
+            "Nonconvex-nonconcave pathology: improvements may be architecture/loss dependent; must clearly scope claims to empirical stability/efficiency rather than global convergence."
+        ]
+    }
+]

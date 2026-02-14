@@ -72,7 +72,7 @@ IDEA_SCHEMA = {
                 "type": "object",
                 "properties": {
                     "author": {"type": "string"},
-                    "year": {"type": "string"},
+                    "year": {"oneOf": [{"type": "string"}, {"type": "integer"}]},
                     "title": {"type": "string"},
                     "url": {"type": "string"},
                     "doi": {"type": "string"},
