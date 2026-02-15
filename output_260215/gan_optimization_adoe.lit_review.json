@@ -1,0 +1,422 @@
+{
+  "topic_summary": "# Title: Stabilizing GAN Min-Max Optimization with Adaptive Damped Optimistic Extragradient (ADOE)\n## Keywords GAN, min-max optimization, saddle-point, extragradient, mirror-prox, optimistic mirror descent, TTUR, consensus regularization, Jacobian-rotation, stochastic optimization\n## TL;DR Can we train GANs faster and more stably by explicitly controlling the “rotational” dynamics of the min–max game (instead of only tuning Adam hyperparameters)?\n## Abstract\nTraining GANs is a stochastic saddle-point (min–max) optimization problem:\nmin_θ max_φ  V(θ, φ),\nwhere θ are generator parameters and φ are discriminator parameters. In practice, this game structure often induces oscillations (limit cycles), instability, sensitivity to learning-rate ratios, and mode collapse—especially under noisy gradients and limited compute budgets.\n\nThis topic proposes an optimization-centric algorithmic contribution: Adaptive Damped Optimistic Extragradient (ADOE).\nCore idea: combine (1) extragradient / lookahead updates to anticipate adversarial responses, (2) optimism to reduce cycling in games, and (3) an adaptive damping term that targets the rotational component of the game dynamics.\nThe damping coefficient λ_t is adjusted online using cheap signals of oscillation (e.g., gradient disagreement across steps, increasing gradient norms, or proxy measures tied to the game vector field), so the method stabilizes when the dynamics become “rotational” and relaxes when optimization is well-behaved.\n\nExpected contributions in generated research proposals:\n1) Mathematical formulation: define the GAN game vector field F(θ, φ) = [∇_θ V; -∇_φ V] and propose an update rule using extragradient + optimism + adaptive damping/regularization.\n2) Algorithm: provide pseudocode with TTUR-style step sizes (η_θ ≠ η_φ) and an adaptive λ_t schedule.\n3) Experiments: evaluate on CIFAR-10 / CelebA (small-scale first) with standard GAN losses (hinge/WGAN-GP), reporting both quality and efficiency:\n   - FID/IS vs wall-clock time, steps-to-target, stability across seeds\n   - sensitivity to batch size and learning-rate ratios\n   - compute/memory overhead of any Jacobian-vector or Hessian-vector proxy (if used)\n4) Ablations (must): EG only vs EG+optimism vs EG+adaptive damping vs full ADOE; fixed λ vs adaptive λ; TTUR vs single LR; Adam vs SGD variants.\n5) Risk factors: extra gradient computations may increase per-step cost; damping may slow convergence if over-activated; proxies for rotational dynamics may be noisy.\n\nGoal: produce ideas that are publishable as optimization-for-GAN contributions—clear objective, algorithmic novelty tied to game dynamics, and rigorous, reproducible empirical evaluation under constrained compute.",
+  "entries": [
+    {
+      "source": "search",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "[PDF] taking GAN training in stride with Tseng's method",
+        "url": "https://www.mat.univie.ac.at/~rabot/publications/jour22-01.pdf"
+      },
+      "approach_summary": "[PDF] taking GAN training in stride with Tseng's method",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "search",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "[PDF] Training GANs with Optimism | Semantic Scholar",
+        "url": "https://www.semanticscholar.org/paper/Training-GANs-with-Optimism-Daskalakis-Ilyas/63f2a1289ff16ca84cca383c7687452bf61c82c6"
+      },
+      "approach_summary": "[PDF] Training GANs with Optimism | Semantic Scholar",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "search",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "Two Steps at a Time---Taking GAN Training in Stride with Tseng's ...",
+        "url": "https://epubs.siam.org/doi/pdf/10.1137/21M1420939?download=true"
+      },
+      "approach_summary": "Two Steps at a Time---Taking GAN Training in Stride with Tseng's ...",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "search",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "Reducing noise in GAN training with variance reduced extragradient",
+        "url": "https://dl.acm.org/doi/pdf/10.5555/3454287.3454323"
+      },
+      "approach_summary": "Reducing noise in GAN training with variance reduced extragradient",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "arxiv",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "[1711.00141] Training GANs with Optimism - arXiv",
+        "url": "https://arxiv.org/abs/1711.00141"
+      },
+      "approach_summary": "[1711.00141] Training GANs with Optimism - arXiv",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "search",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "Mirror descent in saddle-point problems: Going the extra (gradient ...",
+        "url": "https://www.researchgate.net/publication/326290382_Mirror_descent_in_saddle-point_problems_Going_the_extra_gradient_mile"
+      },
+      "approach_summary": "Mirror descent in saddle-point problems: Going the extra (gradient ...",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "search",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "[PDF] Reducing Noise in GAN Training with Variance ..",
+        "url": "http://papers.neurips.cc/paper/8331-reducing-noise-in-gan-training-with-variance-reduced-extragradient.pdf"
+      },
+      "approach_summary": "[PDF] Reducing Noise in GAN Training with Variance ... - NIPS - NeurIPS",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "search",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "[PDF] Optimistic Mirror Descent in Saddle-Point Problems - HAL-Inria",
+        "url": "https://inria.hal.science/hal-02111937/file/Main.pdf"
+      },
+      "approach_summary": "[PDF] Optimistic Mirror Descent in Saddle-Point Problems - HAL-Inria",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "search",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "[PDF] Stochastic Extragradient Methods with Variable Stepsize Scaling",
+        "url": "https://www.cyber-meow.com/assets/file/DSEG.pdf"
+      },
+      "approach_summary": "[PDF] Stochastic Extragradient Methods with Variable Stepsize Scaling",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "search",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "[PDF] OPTIMISTIC MIRROR DESCENT IN SADDLE-POINT PROBLEMS",
+        "url": "https://polaris.imag.fr/panayotis.mertikopoulos/files/ExtraMile-ICLR.pdf"
+      },
+      "approach_summary": "[PDF] OPTIMISTIC MIRROR DESCENT IN SADDLE-POINT PROBLEMS",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "search",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "[PDF] Which Training Methods for GANs do actually Converge ...",
+        "url": "https://www.cvlibs.net/publications/Mescheder2018ICML_supplementary.pdf"
+      },
+      "approach_summary": "[PDF] Which Training Methods for GANs do actually Converge ...",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "search",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "[PDF] Which Training Methods for GANs do actually Converge?",
+        "url": "http://proceedings.mlr.press/v80/mescheder18a/mescheder18a.pdf"
+      },
+      "approach_summary": "[PDF] Which Training Methods for GANs do actually Converge?",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "arxiv",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "Which Training Methods for GANs do actually Converge? - arXiv",
+        "url": "https://arxiv.org/abs/1801.04406"
+      },
+      "approach_summary": "Which Training Methods for GANs do actually Converge? - arXiv",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "search",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "Which Training Methods for GANs do actually Converge? - MPG.PuRe",
+        "url": "https://pure.mpg.de/pubman/faces/ViewItemFullPage.jsp?itemId=item_3051206"
+      },
+      "approach_summary": "Which Training Methods for GANs do actually Converge? - MPG.PuRe",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "search",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "[PDF] Training Methods for GANs do actually Converge",
+        "url": "https://www.semanticscholar.org/paper/e7a0612d5b2f98cc3bf5dbc73139cb43c6b9ddbd"
+      },
+      "approach_summary": "[PDF] Training Methods for GANs do actually Converge",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "search",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "LMescheder/GAN_stability: Code for paper \"Which Training ..",
+        "url": "https://github.com/LMescheder/GAN_stability"
+      },
+      "approach_summary": "LMescheder/GAN_stability: Code for paper \"Which Training ... - GitHub",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "arxiv",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "GANs Trained by a Two Time-Scale Update Rule Converge to a ...",
+        "url": "https://arxiv.org/abs/1706.08500"
+      },
+      "approach_summary": "GANs Trained by a Two Time-Scale Update Rule Converge to a ...",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "search",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "Two Time-Scale Update Rule (TTUR) - ApX Machine Learning",
+        "url": "https://apxml.com/courses/synthetic-data-gans-diffusion/chapter-3-gan-training-stability-optimization/gan-ttur-optimization"
+      },
+      "approach_summary": "Two Time-Scale Update Rule (TTUR) - ApX Machine Learning",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "arxiv",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "[PDF] GANs Trained by a Two Time-Scale Update Rule Converge to a ...",
+        "url": "https://arxiv.org/pdf/1706.08500"
+      },
+      "approach_summary": "[PDF] GANs Trained by a Two Time-Scale Update Rule Converge to a ...",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "arxiv",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "[PDF] arXiv:1802.05642v2 [cs.LG] 6 Jun 2018",
+        "url": "https://arxiv.org/pdf/1802.05642"
+      },
+      "approach_summary": "[PDF] arXiv:1802.05642v2 [cs.LG] 6 Jun 2018",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "search",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "[PDF] GANs Trained by a Two Time-Scale Update Rule Converge to ...",
+        "url": "https://www.semanticscholar.org/paper/GANs-Trained-by-a-Two-Time-Scale-Update-Rule-to-a-Heusel-Ramsauer/231af7dc01a166cac3b5b01ca05778238f796e41"
+      },
+      "approach_summary": "[PDF] GANs Trained by a Two Time-Scale Update Rule Converge to ...",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "search",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "Gans trained by a two time-scale update rule converge to a local ...",
+        "url": "https://research.jku.at/en/publications/gans-trained-by-a-two-time-scale-update-rule-converge-to-a-local-/"
+      },
+      "approach_summary": "Gans trained by a two time-scale update rule converge to a local ...",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "search",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "GANs trained by a two time-scale update rule converge to a local ...",
+        "url": "https://dl.acm.org/doi/10.5555/3295222.3295408"
+      },
+      "approach_summary": "GANs trained by a two time-scale update rule converge to a local ...",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "search",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "(PDF) GANs Trained by a Two Time-Scale Update Rule Converge to ...",
+        "url": "https://www.researchgate.net/publication/321796129_GANs_Trained_by_a_Two_Time-Scale_Update_Rule_Converge_to_a_Local_Nash_Equilibrium"
+      },
+      "approach_summary": "(PDF) GANs Trained by a Two Time-Scale Update Rule Converge to ...",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "search",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "[PDF] LEAD: Least-Action Dynamics for Min-Max Optimization",
+        "url": "https://opt-ml.org/papers/2020/paper_93.pdf"
+      },
+      "approach_summary": "[PDF] LEAD: Least-Action Dynamics for Min-Max Optimization",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "search",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "Balduzzi 等 - The Mechanics of n-Player Differentiable Games - Scribd",
+        "url": "https://www.scribd.com/document/818833374/Balduzzi-%E7%AD%89-The-Mechanics-of-n-Player-Differentiable-Games"
+      },
+      "approach_summary": "Balduzzi 等 - The Mechanics of n-Player Differentiable Games - Scribd",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "search",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "[PDF] The Mechanics of n-Player Differentiable Games",
+        "url": "https://proceedings.mlr.press/v80/balduzzi18a/balduzzi18a.pdf"
+      },
+      "approach_summary": "[PDF] The Mechanics of n-Player Differentiable Games",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "search",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "[PDF] Differentiable Game Mechanics",
+        "url": "https://jmlr.csail.mit.edu/papers/volume20/19-008/19-008.pdf"
+      },
+      "approach_summary": "[PDF] Differentiable Game Mechanics",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "search",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "Differentiable Game Mechanics",
+        "url": "https://jmlr.org/papers/v20/19-008.html"
+      },
+      "approach_summary": "Differentiable Game Mechanics",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "search",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "google-deepmind/symplectic-gradient-adjustment - GitHub",
+        "url": "https://github.com/google-deepmind/symplectic-gradient-adjustment"
+      },
+      "approach_summary": "google-deepmind/symplectic-gradient-adjustment - GitHub",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "search",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "(PDF) The Mechanics of n-Player Differentiable Games",
+        "url": "https://www.researchgate.net/publication/323217464_The_Mechanics_of_n-Player_Differentiable_Games"
+      },
+      "approach_summary": "(PDF) The Mechanics of n-Player Differentiable Games",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "search",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "[PDF] ON SOLVING MINIMAX OPTIMIZATION LOCALLY - OpenReview",
+        "url": "https://openreview.net/pdf/6a3d8fe978f41b939fae6fb8dd86e6bd7c2ecf57.pdf"
+      },
+      "approach_summary": "[PDF] ON SOLVING MINIMAX OPTIMIZATION LOCALLY - OpenReview",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    }
+  ],
+  "synthesis": "Auto-finalized when reflection rounds were exhausted. Synthesis based on gathered search results."
+}

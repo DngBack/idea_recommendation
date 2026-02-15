@@ -102,10 +102,22 @@ def build_parser() -> argparse.ArgumentParser:
         help="Model to use for novelty scoring (defaults to --model).",
     )
     parser.add_argument(
+        "--s2",
+        action="store_true",
+        default=False,
+        help="Enable the Semantic Scholar search tool (requires S2_API_KEY).",
+    )
+    parser.add_argument(
         "--no-arxiv",
         action="store_true",
         default=False,
         help="Disable the arXiv search tool.",
+    )
+    parser.add_argument(
+        "--no-tavily",
+        action="store_true",
+        default=False,
+        help="Disable the Tavily search tool.",
     )
     parser.add_argument(
         "--pubmed",
@@ -148,8 +160,8 @@ def build_parser() -> argparse.ArgumentParser:
         "--phase",
         type=str,
         default=None,
-        choices=["literature_review", "hypotheses", "direction", "experiment_plan"],
-        help="Run only one pipeline phase; use with --from-literature, --from-hypotheses, or --from-direction as needed.",
+        choices=["literature_review", "hypotheses", "feasibility_selection", "direction", "experiment_plan", "critique"],
+        help="Run only one pipeline phase; use with --from-literature, --from-hypotheses, --from-direction, --from-experiment-plan as needed.",
     )
     parser.add_argument(
         "--from-literature",
@@ -167,7 +179,31 @@ def build_parser() -> argparse.ArgumentParser:
         "--from-direction",
         type=str,
         default=None,
-        help="Path to direction.json; required for --phase experiment_plan.",
+        help="Path to direction.json; required for --phase experiment_plan and --phase critique.",
+    )
+    parser.add_argument(
+        "--from-feasibility",
+        type=str,
+        default=None,
+        help="Path to feasibility.json; optional for --phase direction (uses chosen_hypothesis_name).",
+    )
+    parser.add_argument(
+        "--from-experiment-plan",
+        type=str,
+        default=None,
+        help="Path to experiment_plan.json; optional for --phase critique.",
+    )
+    parser.add_argument(
+        "--skip-feasibility",
+        action="store_true",
+        default=False,
+        help="In full pipeline, skip the feasibility selection step.",
+    )
+    parser.add_argument(
+        "--skip-critique",
+        action="store_true",
+        default=False,
+        help="In full pipeline, skip the multi-persona critique step.",
     )
     parser.add_argument(
         "--verbose", "-v",
@@ -241,7 +277,9 @@ def main(argv: list[str] | None = None) -> None:
             novelty_scoring=args.novelty_scoring or cfg_dict.get("novelty_scoring", False),
             novelty_model=args.novelty_model or cfg_dict.get("novelty_model", ""),
             checkpoint_interval=cfg_dict.get("checkpoint_interval", IdeaGeneratorConfig.checkpoint_interval),
+            s2_enabled=args.s2 or cfg_dict.get("s2_enabled", False),
             arxiv_enabled=not args.no_arxiv and cfg_dict.get("arxiv_enabled", True),
+            tavily_enabled=not args.no_tavily and cfg_dict.get("tavily_enabled", True),
             pubmed_enabled=args.pubmed or cfg_dict.get("pubmed_enabled", False),
             openalex_enabled=args.openalex or cfg_dict.get("openalex_enabled", False),
             resume=args.resume or cfg_dict.get("resume", False),
@@ -250,6 +288,10 @@ def main(argv: list[str] | None = None) -> None:
             pipeline_literature_reflections=rp_cfg.get("literature_reflections", IdeaGeneratorConfig.pipeline_literature_reflections),
             pipeline_direction_reflections=rp_cfg.get("direction_reflections", IdeaGeneratorConfig.pipeline_direction_reflections),
             pipeline_max_hypotheses=rp_cfg.get("max_hypotheses", IdeaGeneratorConfig.pipeline_max_hypotheses),
+            pipeline_skip_feasibility=rp_cfg.get("skip_feasibility", False),
+            pipeline_skip_critique=rp_cfg.get("skip_critique", False),
+            pipeline_structured_output=rp_cfg.get("structured_output", True),
+            critique_persona_ids=rp_cfg.get("critique_persona_ids"),
         )
         output_dir = config.output_dir
         if args.phase:
@@ -271,6 +313,17 @@ def main(argv: list[str] | None = None) -> None:
                 out_path = args.output or str(Path(output_dir) / f"{Path(from_lit).stem.replace('.lit_review', '')}.hypotheses.json")
                 research_pipeline.run_gap_hypotheses(from_lit, config, out_path)
                 logger.info("Phase 2 complete: %s", out_path)
+            elif args.phase == "feasibility_selection":
+                from_hyp = args.from_hypotheses
+                if not from_hyp:
+                    logger.error("--from-hypotheses is required for --phase feasibility_selection.")
+                    sys.exit(1)
+                if not Path(from_hyp).exists():
+                    logger.error("File not found: %s", from_hyp)
+                    sys.exit(1)
+                out_path = args.output or str(Path(output_dir) / f"{Path(from_hyp).stem.replace('.hypotheses', '')}.feasibility.json")
+                research_pipeline.run_feasibility_selection(from_hyp, config, out_path)
+                logger.info("Feasibility selection complete: %s", out_path)
             elif args.phase == "direction":
                 from_hyp = args.from_hypotheses
                 if not from_hyp:
@@ -285,10 +338,14 @@ def main(argv: list[str] | None = None) -> None:
                 if not Path(from_lit).exists():
                     logger.error("Literature review file not found: %s (use --from-literature to specify)", from_lit)
                     sys.exit(1)
+                chosen_id = None
+                if args.from_feasibility and Path(args.from_feasibility).exists():
+                    with open(args.from_feasibility, "r", encoding="utf-8") as f:
+                        chosen_id = json.load(f).get("chosen_hypothesis_name")
                 out_path = args.output or str(Path(output_dir) / f"{Path(from_hyp).stem.replace('.hypotheses', '')}.direction.json")
-                research_pipeline.run_direction(from_lit, from_hyp, config, out_path)
+                research_pipeline.run_direction(from_lit, from_hyp, config, out_path, chosen_hypothesis_id=chosen_id)
                 logger.info("Phase 3 complete: %s", out_path)
-            else:
+            elif args.phase == "experiment_plan":
                 from_dir = args.from_direction
                 if not from_dir:
                     logger.error("--from-direction is required for --phase experiment_plan.")
@@ -299,11 +356,29 @@ def main(argv: list[str] | None = None) -> None:
                 out_path = args.output or str(Path(output_dir) / f"{Path(from_dir).stem.replace('.direction', '')}.experiment_plan.json")
                 research_pipeline.run_experiment_plan(from_dir, config, out_path)
                 logger.info("Phase 4 complete: %s", out_path)
+            elif args.phase == "critique":
+                from_dir = args.from_direction
+                if not from_dir:
+                    logger.error("--from-direction is required for --phase critique.")
+                    sys.exit(1)
+                if not Path(from_dir).exists():
+                    logger.error("File not found: %s", from_dir)
+                    sys.exit(1)
+                from_exp = args.from_experiment_plan
+                out_path = args.output or str(Path(output_dir) / f"{Path(from_dir).stem.replace('.direction', '')}.critique.json")
+                research_pipeline.run_critique(from_dir, config, out_path, experiment_plan_path=from_exp, persona_ids=config.critique_persona_ids)
+                logger.info("Critique complete: %s", out_path)
         else:
             if not args.topic_file:
                 logger.error("--topic-file is required for --pipeline.")
                 sys.exit(1)
-            paths = research_pipeline.run_full_research_pipeline(args.topic_file, config, output_dir)
+            skip_feasibility = args.skip_feasibility or getattr(config, "pipeline_skip_feasibility", False)
+            skip_critique = args.skip_critique or getattr(config, "pipeline_skip_critique", False)
+            paths = research_pipeline.run_full_research_pipeline(
+                args.topic_file, config, output_dir,
+                skip_feasibility=skip_feasibility,
+                skip_critique=skip_critique,
+            )
             logger.info("Pipeline complete. Artifacts: %s", paths)
         return
 
@@ -321,7 +396,9 @@ def main(argv: list[str] | None = None) -> None:
         novelty_scoring=args.novelty_scoring or cfg_dict.get("novelty_scoring", False),
         novelty_model=args.novelty_model or cfg_dict.get("novelty_model", ""),
         checkpoint_interval=cfg_dict.get("checkpoint_interval", IdeaGeneratorConfig.checkpoint_interval),
+        s2_enabled=args.s2 or cfg_dict.get("s2_enabled", False),
         arxiv_enabled=not args.no_arxiv and cfg_dict.get("arxiv_enabled", True),
+        tavily_enabled=not args.no_tavily and cfg_dict.get("tavily_enabled", True),
         pubmed_enabled=args.pubmed or cfg_dict.get("pubmed_enabled", False),
         openalex_enabled=args.openalex or cfg_dict.get("openalex_enabled", False),
         resume=args.resume or cfg_dict.get("resume", False),

@@ -4,9 +4,11 @@ idea_generator/__init__.py
 idea_generator/__main__.py
 idea_generator/cli.py
 idea_generator/core.py
+idea_generator/expansion.py
 idea_generator/llm.py
 idea_generator/novelty.py
 idea_generator/prompts.py
+idea_generator/research_pipeline.py
 idea_generator/validators.py
 idea_generator.egg-info/PKG-INFO
 idea_generator.egg-info/SOURCES.txt
@@ -17,7 +19,11 @@ idea_generator.egg-info/top_level.txt
 idea_generator/tools/__init__.py
 idea_generator/tools/arxiv.py
 idea_generator/tools/base.py
+idea_generator/tools/crossref.py
+idea_generator/tools/openalex.py
+idea_generator/tools/pubmed.py
 idea_generator/tools/semantic_scholar.py
+idea_generator/tools/tavily.py
 idea_generator/utils/__init__.py
 idea_generator/utils/checkpoint.py
 idea_generator/utils/token_tracker.py

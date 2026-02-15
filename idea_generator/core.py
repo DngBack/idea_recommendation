@@ -28,6 +28,7 @@ from .tools.semantic_scholar import SemanticScholarSearchTool
 from .tools.arxiv import ArxivSearchTool
 from .tools.pubmed import PubMedSearchTool
 from .tools.openalex import OpenAlexSearchTool
+from .tools.tavily import TavilySearchTool
 from .validators import validate_idea
 from .utils.checkpoint import load_checkpoint, save_checkpoint
 
@@ -50,7 +51,9 @@ class IdeaGeneratorConfig:
     novelty_scoring: bool = False
     novelty_model: str = ""  # defaults to same as model if empty
     checkpoint_interval: int = 1
+    s2_enabled: bool = False
     arxiv_enabled: bool = True
+    tavily_enabled: bool = True
     pubmed_enabled: bool = False
     openalex_enabled: bool = False
     resume: bool = False
@@ -58,9 +61,13 @@ class IdeaGeneratorConfig:
     system_prompt_override: str = ""
     # Research pipeline (4-phase) settings
     pipeline_mode: bool = False
-    pipeline_literature_reflections: int = 8
+    pipeline_literature_reflections: int = 12
     pipeline_direction_reflections: int = 5
     pipeline_max_hypotheses: int = 10
+    pipeline_skip_feasibility: bool = False
+    pipeline_skip_critique: bool = False
+    pipeline_structured_output: bool = True  # Use OpenAI Structured Outputs when model supports it
+    critique_persona_ids: Optional[List[str]] = None  # None = all personas
 
 
 # ---------------------------------------------------------------------------
@@ -101,9 +108,13 @@ def generate_ideas(
     logger.info("LLM client ready: model=%s", client_model)
 
     # --- setup tools ---
-    tools: list = [SemanticScholarSearchTool()]
+    tools: list = []
+    if config.s2_enabled:
+        tools.append(SemanticScholarSearchTool())
     if config.arxiv_enabled:
         tools.append(ArxivSearchTool())
+    if config.tavily_enabled:
+        tools.append(TavilySearchTool())
     if config.pubmed_enabled:
         tools.append(PubMedSearchTool())
     if config.openalex_enabled:
@@ -295,7 +306,54 @@ def _parse_action_arguments(response_text: str) -> tuple[str, str]:
                 action_match = re.match(r"^\s*ACTION\s*:\s*(.+)", line, re.IGNORECASE)
                 break
 
+    # Fallback: look for tool/action name as a word or with spaces (e.g. "Search arXiv", "SearchArxiv")
     if not action_match:
+        # Order matters: prefer Finalize* so we don't treat a finalize response as search
+        known_actions = [
+            "FinalizeLiteratureReview", "Finalize Direction", "FinalizeDirection", "Finalize Idea", "FinalizeIdea",
+            "SearchArxiv", "Search arXiv", "SearchTavily", "Search Tavily",
+            "SearchSemanticScholar", "Search Semantic Scholar", "SearchPubMed", "Search PubMed", "SearchOpenAlex", "Search OpenAlex",
+        ]
+        for act in known_actions:
+            # Allow "Search arXiv" or "SearchArxiv" etc.
+            pattern = r"\b" + re.escape(act).replace(r"\ ", r"\s+") + r"\b"
+            if re.search(pattern, text, re.IGNORECASE):
+                # Map to canonical name (no space)
+                canonical = {
+                    "Finalize Direction": "FinalizeDirection", "Finalize Idea": "FinalizeIdea",
+                    "Search arXiv": "SearchArxiv", "Search Tavily": "SearchTavily",
+                    "Search Semantic Scholar": "SearchSemanticScholar", "Search PubMed": "SearchPubMed", "Search OpenAlex": "SearchOpenAlex",
+                }
+                action_match = type("Match", (), {"group": lambda self, x: canonical.get(act, act.replace(" ", ""))})()
+                break
+
+    # Fallback: infer action from JSON keys in response (e.g. model output raw JSON without ACTION: label)
+    if not action_match:
+        candidate_str = _extract_outermost_json_object(text)
+        if candidate_str:
+            try:
+                obj = json.loads(candidate_str)
+                if isinstance(obj, dict):
+                    if "literature_review" in obj:
+                        action_match = type("Match", (), {"group": lambda self, x: "FinalizeLiteratureReview"})()
+                    elif "direction" in obj:
+                        action_match = type("Match", (), {"group": lambda self, x: "FinalizeDirection"})()
+                    elif "idea" in obj:
+                        action_match = type("Match", (), {"group": lambda self, x: "FinalizeIdea"})()
+                    elif "query" in obj:
+                        action_match = type("Match", (), {"group": lambda self, x: "SearchArxiv"})()
+            except json.JSONDecodeError:
+                pass
+
+    if not action_match:
+        _debug_preview = (text or "")[:2000]
+        if len(text or "") > 2000:
+            _debug_preview += "\n... [truncated]"
+        logger.debug(
+            "Could not find ACTION in response (%d chars). Preview:\n%s",
+            len(text or ""),
+            _debug_preview,
+        )
         raise ValueError("Could not find ACTION in response.")
 
     action = action_match.group(1).strip().strip('"').strip("'").strip()
@@ -317,21 +375,97 @@ def _parse_action_arguments(response_text: str) -> tuple[str, str]:
     if json_block:
         arguments_text = json_block.group(1)
 
+    # Fallback: if no ARGUMENTS found, try to extract a JSON object from the whole response (e.g. model didn't use ARGUMENTS: label)
+    if not arguments_text or not arguments_text.strip():
+        candidate_str = _extract_outermost_json_object(text)
+        if candidate_str:
+            try:
+                obj = json.loads(candidate_str)
+                if isinstance(obj, dict) and (
+                    "query" in obj or "literature_review" in obj or "direction" in obj or "idea" in obj
+                ):
+                    arguments_text = candidate_str
+            except json.JSONDecodeError:
+                pass
+
     return action, arguments_text
 
 
+def _fix_common_json_llm_issues(raw: str) -> str:
+    """Apply fixes for common LLM JSON mistakes (trailing commas, etc.)."""
+    # Remove trailing commas before } or ]
+    out = re.sub(r",(\s*[}\]])", r"\1", raw)
+    return out
+
+
+def _extract_outermost_json_object(text: str) -> Optional[str]:
+    """Extract the first complete {...} object by matching braces (handles nesting)."""
+    start = text.find("{")
+    if start == -1:
+        return None
+    depth = 0
+    in_string = False
+    escape = False
+    quote_char = None
+    i = start
+    while i < len(text):
+        c = text[i]
+        if escape:
+            escape = False
+            i += 1
+            continue
+        if in_string:
+            if c == "\\" and quote_char:
+                escape = True
+            elif c == quote_char:
+                in_string = False
+            i += 1
+            continue
+        if c in ('"', "'"):
+            in_string = True
+            quote_char = c
+            i += 1
+            continue
+        if c == "{":
+            depth += 1
+        elif c == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start : i + 1]
+        i += 1
+    return None
+
+
 def _safe_parse_json(text: str) -> dict:
-    """Try to parse JSON, stripping markdown fences if needed."""
+    """Try to parse JSON, stripping markdown fences and fixing common LLM errors."""
     text = text.strip()
     # Remove ```json ... ``` wrapper if still present
     m = re.search(r"```json\s*(.*?)\s*```", text, re.DOTALL)
     if m:
         text = m.group(1).strip()
+
+    def _parse(s: str) -> dict:
+        try:
+            return json.loads(s)
+        except json.JSONDecodeError as e:
+            fixed = _fix_common_json_llm_issues(s)
+            if fixed != s:
+                try:
+                    return json.loads(fixed)
+                except json.JSONDecodeError:
+                    pass
+            raise e
+
     try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        # Try to find the outermost { ... }
-        brace_match = re.search(r"\{.*\}", text, re.DOTALL)
-        if brace_match:
-            return json.loads(brace_match.group(0))
-        raise
+        return _parse(text)
+    except json.JSONDecodeError as e:
+        candidate = _extract_outermost_json_object(text)
+        if candidate:
+            try:
+                return json.loads(candidate)
+            except json.JSONDecodeError:
+                try:
+                    return _parse(_fix_common_json_llm_issues(candidate))
+                except json.JSONDecodeError:
+                    pass
+        raise e

@@ -47,7 +47,7 @@ The IDEA JSON should include the following fields:
 - "Title": A catchy and informative title for the proposal.
 - "Short Hypothesis": A concise statement of the main hypothesis or research question. Clarify the need for this specific direction, ensure this is the best setting to investigate this idea, and there are not obvious other simpler ways to answer the question.
 - "Related Work": A brief discussion of the most relevant related work and how the proposal clearly distinguishes from it, and is not a trivial extension. Cite sources using [Author (Year)] and ensure every cited work has a corresponding entry in "References".
-- "References": An array of citation objects, one for each source cited in Related Work. Each object must have "author", "year", "title", and optionally "url" or "doi". Use the exact CITE lines from the search tool results (SearchSemanticScholar, SearchArxiv, SearchPubMed, or SearchOpenAlex) to fill these fields.
+- "References": An array of citation objects, one for each source cited in Related Work. Each object must have "author", "year", "title", and optionally "url" or "doi". Use the exact CITE lines from the search tool results (e.g. SearchArxiv, SearchTavily, SearchSemanticScholar, SearchPubMed, SearchOpenAlex) to fill these fields.
 - "Abstract": An abstract that summarizes the proposal in conference format (approximately 250 words).
 - "Experiments": A list of experiments that would be conducted to validate the proposal. Ensure these are simple and feasible. Be specific in exactly how you would test the hypothesis, and detail precise algorithmic changes. Include the evaluation metrics you would use.
 - "Risk Factors and Limitations": A list of potential risks and limitations of the proposal.""",
@@ -74,7 +74,7 @@ ACTION:
 <The action to take, exactly one of {tool_names_str}>
 
 ARGUMENTS:
-<If ACTION is a search tool (SearchSemanticScholar, SearchArxiv, SearchPubMed, or SearchOpenAlex), provide the search query as {{"query": "your search query"}}. If ACTION is "FinalizeIdea", provide the idea details as {{"idea": {{ ... }}}} with the IDEA JSON specified below.>
+<If ACTION is a search tool (e.g. SearchArxiv, SearchTavily, SearchSemanticScholar), provide the search query as {{"query": "your search query"}}. If ACTION is "FinalizeIdea", provide the idea details as {{"idea": {{ ... }}}} with the IDEA JSON specified below.>
 
 If you choose to finalize your idea, provide the IDEA JSON in the arguments:
 
@@ -162,12 +162,12 @@ Use ARGUMENTS as {"literature_review": { ... }} with the above structure.""",
 
 def get_literature_review_system_prompt(tool_descriptions: str, tool_names_str: str) -> str:
     """System prompt for Phase 1: literature reviewer."""
-    return f"""You are an expert literature reviewer. Your task is to conduct a structured literature review on the given research topic.
+    return f"""You are an expert literature reviewer. Your task is to conduct a detailed, thorough literature review on the given research topic.
 
-Use the topic description and keywords to search for relevant papers and methods. For each important paper or approach you find:
-1. Summarize the approach.
-2. List strengths and weaknesses clearly.
-3. Identify research gaps (what the work does not address or where it falls short).
+You MUST search multiple times before finalizing:
+- Use at least 4–6 search calls (or more) with different queries: try variations of keywords, specific methods, and sub-topics. Use different tools (e.g. SearchArxiv and SearchTavily) to cover more sources.
+- Aim for at least 8–12 distinct papers or approaches in your final review. Do NOT finalize with only 3–5 entries; a detailed review needs broad coverage.
+- For each important paper or approach: (1) summarize the approach, (2) list strengths and weaknesses, (3) identify research gaps.
 
 You have access to the following tools:
 
@@ -181,25 +181,36 @@ ACTION:
 ARGUMENTS:
 <For search tools: {{"query": "your search query"}}. For FinalizeLiteratureReview: {{"literature_review": {{ "topic_summary": "...", "entries": [...], "synthesis": "..." }}}}>
 
-After you have gathered enough papers (at least 3–5 distinct approaches), finalize the review with FinalizeLiteratureReview. Ensure every entry has source, citation (author, year, title, url or doi), approach_summary, strengths, weaknesses, and research_gaps. Write a concise synthesis paragraph."""
+Only call FinalizeLiteratureReview when you have performed several searches and have at least 8 distinct entries. Ensure every entry has source, citation (author, year, title, url or doi), approach_summary, strengths, weaknesses, and research_gaps. Write a concise synthesis paragraph."""
 
 
 LITERATURE_REVIEW_INITIAL_PROMPT = """Research topic:
 
 {topic_content}
 
-Conduct a structured literature review. Start by searching for relevant papers and methods using the keywords and topic above. For each relevant work, record the approach summary, strengths, weaknesses, and research gaps. When you have covered the main lines of work, finalize the review using FinalizeLiteratureReview with the required JSON structure."""
+Conduct a detailed literature review. You have multiple rounds: use them to search repeatedly with different queries (keyword variants, method names, sub-topics) and use different search tools (e.g. arXiv and Tavily). Only after at least 4–6 searches and 8+ distinct papers or approaches, finalize with FinalizeLiteratureReview. For each work, record approach summary, strengths, weaknesses, and research gaps."""
 
 
 LITERATURE_REVIEW_REFLECTION_PROMPT = """Round {current_round}/{num_reflections}.
 
-Consider the literature you have gathered. Add or refine entries (approach summary, strengths, weaknesses, research_gaps). Ensure the synthesis paragraph captures overall trends and common gaps.
+Consider the literature you have gathered. If you have fewer than 8 entries or have not yet used several different search queries, use a search tool now (try a new query or a different tool). Add or refine entries: approach_summary, strengths, weaknesses, research_gaps. Ensure the synthesis captures overall trends and common gaps.
 
 Results from your last action:
 
 {last_tool_results}
 
-When ready, use FinalizeLiteratureReview with the complete literature_review JSON. If you need more papers, use a search tool first."""
+When you have at least 8 entries and have searched multiple times, use FinalizeLiteratureReview with the complete literature_review JSON. If in doubt, search again before finalizing."""
+
+# Used when this is the last round: force finalize (model often keeps searching otherwise).
+LITERATURE_REVIEW_FINAL_ROUND_PROMPT = """This is the FINAL round ({current_round}/{num_reflections}). You MUST call FinalizeLiteratureReview now. Do NOT search again.
+
+Summarize all the papers and approaches you have gathered so far into the literature_review JSON (topic_summary, entries with source, citation, approach_summary, strengths, weaknesses, research_gaps, and synthesis). Use the information from your previous search results below. If you have fewer than 8 entries, include all you have and write a short synthesis.
+
+Results from your last action:
+
+{last_tool_results}
+
+Reply with ACTION: FinalizeLiteratureReview and ARGUMENTS: {{"literature_review": {{ ... }}}} now."""
 
 
 # ---------------------------------------------------------------------------
@@ -324,6 +335,82 @@ Produce a JSON object with this exact structure (no markdown, no explanation):
 }}
 
 Be specific: metrics should include primary and secondary; baselines must be named methods from the literature; datasets with size and access; implementation steps in order with clear deliverables; min_config must be lab-feasible."""
+
+
+# ---------------------------------------------------------------------------
+# Research pipeline – Feasibility selection (after hypotheses)
+# ---------------------------------------------------------------------------
+
+FEASIBILITY_SELECTION_PROMPT = """You are an experienced research advisor. Given the following research gaps and hypotheses from a literature review, select the ONE hypothesis that is most feasible to pursue in an academic lab setting.
+
+Consider:
+- Clarity and testability of the hypothesis
+- Resource feasibility (data, compute, time)
+- Alignment with current literature and likelihood of publishable results at a top ML venue (ICML, NeurIPS, ICLR)
+- Risk vs. impact balance
+
+Hypotheses and gaps:
+
+{hypotheses_json}
+
+Respond with a single JSON object only (no markdown, no explanation):
+{{
+  "chosen_hypothesis_name": "<exact 'name' field of the chosen hypothesis>",
+  "rationale": "2–4 sentences explaining why this hypothesis is the most feasible.",
+  "feasibility_scores": [
+    {{ "hypothesis_name": "...", "score_1_to_5": 4, "brief_reason": "..." }},
+    ...
+  ]
+}}
+
+Include feasibility_scores for each hypothesis (1–5, 5 = most feasible). The chosen_hypothesis_name must match one of the "name" values in the hypotheses list exactly."""
+
+
+# ---------------------------------------------------------------------------
+# Research pipeline – Critique with multiple personas (after direction)
+# ---------------------------------------------------------------------------
+
+# Personas for multi-perspective review. Each has id, name, and system_prompt.
+CRITIQUE_PERSONAS = [
+    {
+        "id": "icml_reviewer",
+        "name": "ICML Reviewer",
+        "system_prompt": """You are a senior program committee member for the International Conference on Machine Learning (ICML). You have reviewed hundreds of submissions and value novelty, clarity, rigorous evaluation, and impact. You are strict but fair: you reject incremental work and unclear claims, but you support bold yet well-justified ideas. You write concise, constructive reviews. Use the typical ICML review format: Summary, Strengths, Weaknesses, Questions for authors, and a clear score (1–10) with recommendation (Accept / Weak Accept / Borderline / Weak Reject / Reject).""",
+    },
+    {
+        "id": "neurips_reviewer",
+        "name": "NeurIPS/ICLR Reviewer",
+        "system_prompt": """You are a reviewer for NeurIPS or ICLR. You care about scientific rigor, reproducibility, clear motivation, and novelty. You expect strong baselines, ablations, and honest limitations. You write in a professional tone and provide actionable feedback. Give a score from 1 to 10 and a clear recommendation (Accept / Borderline Accept / Borderline Reject / Reject), plus a short summary, strengths, weaknesses, and suggestions.""",
+    },
+    {
+        "id": "senior_professor",
+        "name": "Senior Professor (PI)",
+        "system_prompt": """You are a tenured professor leading a top ML lab. You evaluate proposals from the perspective of a principal investigator: Is this feasible with a small team and limited budget? Would you assign a PhD student or postdoc to this? Is the timeline realistic? What are the main risks and how would you mitigate them? Give a clear verdict (Go / Revise and reconsider / Do not pursue) and 2–4 paragraphs of advice.""",
+    },
+    {
+        "id": "skeptic_reviewer",
+        "name": "Skeptic Reviewer",
+        "system_prompt": """You are a critical, skeptical reviewer. Your job is to stress-test the proposal: challenge assumptions, point out missing baselines or threats to validity, and identify overclaims. You are not hostile—you want to strengthen the work by surfacing weaknesses. Provide a concise critique with: main concerns, missing experiments or references, and whether the claims are justified. End with a recommendation (Support with major revisions / Borderline / Do not support).""",
+    },
+]
+
+CRITIQUE_USER_PROMPT = """Review the following research proposal and experiment plan. Provide your assessment according to your role.
+
+Research direction (proposal):
+{direction_json}
+
+Experiment plan (if available):
+{experiment_plan_json}
+
+Output a valid JSON object only (no markdown, no extra text):
+{{
+  "summary": "2–3 sentence summary of the proposal.",
+  "strengths": ["...", "..."],
+  "weaknesses": ["...", "..."],
+  "score": <1–10>,
+  "recommendation": "<e.g. Accept / Weak Accept / Borderline / Weak Reject / Reject or Go / Revise / Do not pursue>",
+  "detailed_review": "Optional longer paragraph with detailed feedback."
+}}"""
 
 
 # ---------------------------------------------------------------------------

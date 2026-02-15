@@ -1,0 +1,125 @@
+{
+  "gaps": [
+    {
+      "id": "gap_1",
+      "description": "Lack of GAN optimizers that explicitly and adaptively suppress the rotational (cycling) component of the min–max vector field during training; existing EG/OMD-style methods typically use fixed damping/regularization or fixed hyperparameters rather than online control targeted at rotation.",
+      "related_entries": [
+        "entry_2",
+        "entry_3",
+        "entry_12",
+        "entry_17",
+        "entry_19"
+      ],
+      "priority": "high"
+    },
+    {
+      "id": "gap_2",
+      "description": "No standard, low-overhead, empirically validated proxy for “rotational dynamics” in large neural GANs that can drive an online damping coefficient (e.g., signals derived from successive gradients, gradient disagreement, or cheap Jacobian–vector products).",
+      "related_entries": [
+        "entry_2",
+        "entry_8",
+        "entry_12",
+        "entry_17",
+        "entry_19"
+      ],
+      "priority": "high"
+    },
+    {
+      "id": "gap_3",
+      "description": "Unclear interaction between extragradient/optimism methods and practical GAN training choices (TTUR learning-rate ratios, Adam vs SGD, hinge vs WGAN-GP losses); literature provides partial guidance but not a unified, reproducible evaluation focusing on sensitivity reduction.",
+      "related_entries": [
+        "entry_2",
+        "entry_3",
+        "entry_12",
+        "entry_17",
+        "entry_24"
+      ],
+      "priority": "high"
+    },
+    {
+      "id": "gap_4",
+      "description": "Compute/efficiency trade-offs for EG-like methods in GANs are under-characterized: per-step overhead (extra forward/backward passes; possible JVP/HVP) vs wall-clock improvements (steps-to-target FID/IS, failure rate across seeds).",
+      "related_entries": [
+        "entry_2",
+        "entry_5",
+        "entry_6",
+        "entry_3"
+      ],
+      "priority": "medium"
+    },
+    {
+      "id": "gap_5",
+      "description": "Limited understanding of how stochastic gradient noise and variance-reduction techniques interplay with rotation-control (damping) and optimism; existing variance-reduced EG work targets noise but not adaptive rotation suppression.",
+      "related_entries": [
+        "entry_4",
+        "entry_5",
+        "entry_7",
+        "entry_2"
+      ],
+      "priority": "medium"
+    },
+    {
+      "id": "gap_6",
+      "description": "Gap between theory (monotone variational inequalities, local Nash stability conditions) and modern GAN practice: few results/diagnostics connect measurable training signals to guarantees (or predictable behavior) for adaptive EG/optimistic methods under nonconvex–nonconcave objectives.",
+      "related_entries": [
+        "entry_9",
+        "entry_11",
+        "entry_12",
+        "entry_17",
+        "entry_1"
+      ],
+      "priority": "medium"
+    }
+  ],
+  "hypotheses": [
+    {
+      "name": "adaptive_damping_reduces_gan_limit_cycles",
+      "short_hypothesis": "An ADOE-style optimizer with an online damping coefficient tuned to oscillation signals will reduce cycling (measured by gradient-direction flips and parameter trajectory curvature) and lower the across-seed failure rate versus EG-only, optimistic EG-only, and TTUR+Adam baselines at matched compute budgets.",
+      "linked_gap_ids": [
+        "gap_1",
+        "gap_3",
+        "gap_4"
+      ],
+      "rationale": "Directly tests the core claim that targeted, adaptive suppression of rotation improves stability in realistic GAN training, using measurable indicators of limit cycles and standard GAN outcomes (FID/IS, collapse rate)."
+    },
+    {
+      "name": "cheap_rotation_proxy_matches_jvp_rotation_measure",
+      "short_hypothesis": "A proxy based on successive stochastic gradients (e.g., negative cosine similarity between consecutive game gradients, or disagreement between lookahead and current gradients) will correlate strongly with a more direct but expensive rotation diagnostic (e.g., skew-symmetric component magnitude estimated via Jacobian–vector products) across training regimes and datasets.",
+      "linked_gap_ids": [
+        "gap_2",
+        "gap_4",
+        "gap_6"
+      ],
+      "rationale": "If a cheap proxy tracks true rotational dynamics, it enables practical adaptive damping without heavy second-order computation; correlation can be quantified over time and across conditions."
+    },
+    {
+      "name": "adoe_reduces_tturratio_sensitivity",
+      "short_hypothesis": "Compared to TTUR with fixed optimizers (Adam/SGD) and to fixed-λ regularization, ADOE will exhibit a flatter performance surface over discriminator:generator learning-rate ratios (wider stable region), achieving near-best FID/IS across a broader grid of TTUR ratios and batch sizes.",
+      "linked_gap_ids": [
+        "gap_1",
+        "gap_3"
+      ],
+      "rationale": "Learning-rate ratio sensitivity is a key practical pain point; showing reduced sensitivity is a strong, testable empirical advantage tied to rotation control rather than hyperparameter luck."
+    },
+    {
+      "name": "adaptive_lambda_avoids_overdamping_and_improves_steps_to_target",
+      "short_hypothesis": "An adaptive λ_t schedule that increases only when oscillation proxies rise (and decays otherwise) will reach a target FID faster in wall-clock time than any fixed λ chosen from a reasonable sweep, because it prevents unnecessary damping in well-behaved phases while intervening during rotational bursts.",
+      "linked_gap_ids": [
+        "gap_1",
+        "gap_2",
+        "gap_4"
+      ],
+      "rationale": "Addresses the key risk that damping slows convergence; steps-to-target and wall-clock comparisons against tuned fixed-λ baselines provide a clear falsifiable test."
+    },
+    {
+      "name": "variance_reduction_and_rotation_control_are_complementary",
+      "short_hypothesis": "Combining variance-reduced extragradient (or related gradient-noise reduction) with ADOE will yield additive or super-additive gains in stability and sample quality under small batch sizes/noisy gradients, compared to either variance reduction alone or ADOE alone.",
+      "linked_gap_ids": [
+        "gap_5",
+        "gap_4",
+        "gap_1"
+      ],
+      "rationale": "Separates the roles of noise vs rotation: if gains compound, it supports a modular view (noise control + rotation control) and motivates a stronger practical optimizer for constrained-compute GAN training."
+    }
+  ]
+}

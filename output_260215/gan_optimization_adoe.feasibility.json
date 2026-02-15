@@ -1,0 +1,31 @@
+{
+  "chosen_hypothesis_name": "cheap_rotation_proxy_predicts_instability",
+  "rationale": "This hypothesis is the most directly testable with modest engineering: the proposed proxies can be computed from quantities already available during training (gradients, norms, step-to-step changes) without implementing new second-order machinery. It scales well in an academic lab because it can be validated across small-to-mid GANs/datasets with many seeds and controlled perturbations, yielding statistically solid results. If the proxy robustly predicts blow-ups earlier and better than loss-only baselines, it is a clear, publishable contribution as a diagnostic/measurement tool and can serve as a foundation for subsequent adaptive-control methods.",
+  "feasibility_scores": [
+    {
+      "hypothesis_name": "adaptive_damping_reduces_limit_cycles",
+      "score_1_to_5": 3,
+      "brief_reason": "Requires designing and tuning an ADOE controller plus defining stable rotation metrics; feasibility depends on the proxy quality and careful ablations to avoid confounding with generic regularization."
+    },
+    {
+      "hypothesis_name": "cheap_rotation_proxy_predicts_instability",
+      "score_1_to_5": 5,
+      "brief_reason": "Low implementation overhead (uses existing training signals), can be evaluated with straightforward correlation/forecasting protocols across seeds, and is compute-feasible while still offering a novel, reusable diagnostic."
+    },
+    {
+      "hypothesis_name": "adoe_improves_wallclock_to_target_fid",
+      "score_1_to_5": 2,
+      "brief_reason": "Wall-clock claims are brittle (hardware, I/O, mixed precision, implementation details) and require extensive, tightly controlled benchmarking to be credible at top venues."
+    },
+    {
+      "hypothesis_name": "adoe_reduces_sensitivity_to_lr_ratio",
+      "score_1_to_5": 3,
+      "brief_reason": "Testable but expensive: needs large hyperparameter grids with multiple seeds and careful fairness controls; results can be noisy and may hinge on architecture/loss choices."
+    },
+    {
+      "hypothesis_name": "adaptive_damping_outperforms_fixed_lambda_under_noise",
+      "score_1_to_5": 4,
+      "brief_reason": "Clear experimental design and likely effect under stochasticity, but requires sweeping fixed-λ baselines per noise regime (tuning burden) and substantial compute to make the comparison fair."
+    }
+  ]
+}

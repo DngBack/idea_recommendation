@@ -1,0 +1,10 @@
+{
+  "Name": "cheap_rotation_proxy_matches_jvp_rotation_measure",
+  "Title": "A proxy based on successive stochastic gradients (e.g., negative cosine similari...",
+  "Short Hypothesis": "A proxy based on successive stochastic gradients (e.g., negative cosine similarity between consecutive game gradients, or disagreement between lookahead and current gradients) will correlate strongly with a more direct but expensive rotation diagnostic (e.g., skew-symmetric component magnitude estimated via Jacobian–vector products) across training regimes and datasets.",
+  "Related Work": "Auto-finalized when reflection rounds were exhausted. Synthesis based on gathered search results.",
+  "Abstract": "This direction was auto-finalized when reflection rounds were exhausted. Please expand the abstract and experiments from the chosen hypothesis and literature review.",
+  "Experiments": "Proposed experiments to be specified: replicate baseline, ablations, and main comparison. (Auto-finalized.)",
+  "Risk Factors and Limitations": "Risks and limitations to be documented. (Auto-finalized.)",
+  "References": []
+}

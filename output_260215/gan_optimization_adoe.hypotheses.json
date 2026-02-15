@@ -1,0 +1,141 @@
+{
+  "gaps": [
+    {
+      "id": "gap_rotational_adaptation",
+      "description": "Existing GAN game optimizers (extragradient/Tseng, optimistic methods, consensus/Jacobian-based adjustments) typically use fixed regularization or fixed algorithmic structure. There is limited work on *online, per-iteration* control that explicitly damps rotational/cycling dynamics when they arise and relaxes damping when dynamics are primarily dissipative (convergent).",
+      "related_entries": [
+        0,
+        2,
+        1,
+        4,
+        11,
+        12,
+        27,
+        30,
+        31
+      ],
+      "priority": "high"
+    },
+    {
+      "id": "gap_rotation_proxy_signal",
+      "description": "There is no standard, low-cost, reliable proxy to detect and quantify rotational dynamics (curl/Jacobian skew-symmetry effects) in large GANs under stochastic gradients. Prior game-mechanics work motivates rotational decomposition, but practical signals that are cheap, stable under noise, and predictive of instability are underexplored.",
+      "related_entries": [
+        27,
+        28,
+        29,
+        30,
+        31,
+        3,
+        6
+      ],
+      "priority": "high"
+    },
+    {
+      "id": "gap_cost_stability_tradeoff",
+      "description": "Two-step methods (extragradient/Tseng/Mirror-Prox) improve stability but increase per-iteration compute and memory. The literature lacks a systematic wall-clock/compute-budget analysis showing when the extra step is net beneficial, and whether adaptive damping can reduce the need for aggressive extra-gradient steps or reduce total steps-to-target FID.",
+      "related_entries": [
+        0,
+        2,
+        3,
+        6,
+        26
+      ],
+      "priority": "high"
+    },
+    {
+      "id": "gap_tttr_optimism_interaction",
+      "description": "TTUR is widely used in practice, and optimism/extragradient are known to reduce cycling, but their interaction (especially with an adaptive damping term) is not well characterized. Open questions include: optimal LR ratios under adaptive damping, whether damping substitutes for TTUR, and whether TTUR amplifies or suppresses rotational components.",
+      "related_entries": [
+        17,
+        19,
+        21,
+        24,
+        1,
+        4,
+        0,
+        2
+      ],
+      "priority": "medium"
+    },
+    {
+      "id": "gap_stochastic_theory_for_adaptive_damping",
+      "description": "Convergence/stability analyses exist for optimistic/extragradient/mirror-prox under various monotonicity assumptions, but there is little theory for *adaptive* damping/regularization driven by noisy online signals in non-monotone, nonconvex-nonconcave GAN settings. Conditions preventing over-damping (slowing) vs under-damping (cycling) are not well established.",
+      "related_entries": [
+        5,
+        7,
+        8,
+        9,
+        10,
+        3,
+        6,
+        32
+      ],
+      "priority": "medium"
+    },
+    {
+      "id": "gap_empirical_protocol_reproducibility",
+      "description": "Many stability claims are sensitive to seeds, batch size, architecture, and loss choice (hinge vs WGAN-GP). A standardized, reproducible protocol that reports stability metrics (cycling measures, divergence rate, gradient norms) alongside FID/IS and wall-clock is still inconsistently applied across optimization-centric GAN papers.",
+      "related_entries": [
+        11,
+        12,
+        13,
+        17,
+        19,
+        0,
+        2
+      ],
+      "priority": "medium"
+    }
+  ],
+  "hypotheses": [
+    {
+      "name": "adaptive_damping_reduces_limit_cycles",
+      "short_hypothesis": "An Adaptive Damped Optimistic Extragradient (ADOE) update that increases damping when a rotation proxy rises will reduce cycling behavior (e.g., smaller oscillation amplitude in parameter/gradient trajectories) compared to fixed extragradient or fixed optimism. This will manifest as fewer divergence events and lower variance of discriminator/generator losses across training.",
+      "linked_gap_ids": [
+        "gap_rotational_adaptation",
+        "gap_rotation_proxy_signal",
+        "gap_empirical_protocol_reproducibility"
+      ],
+      "rationale": "Cycling/rotation is a core failure mode in min-max training; directly tying damping to a measurable rotation proxy makes the mechanism testable and falsifiable via trajectory-based stability metrics, not just final FID."
+    },
+    {
+      "name": "cheap_rotation_proxy_predicts_instability",
+      "short_hypothesis": "Simple, low-cost signals—such as successive gradient disagreement (cosine similarity between F_t and F_{t-1}), increasing gradient norms, or a one-step finite-difference skew-symmetry estimate—will significantly correlate with upcoming instability (FID blow-ups, loss divergence, or discriminator saturation) under noisy GAN training. The correlation will be stronger than using raw loss values alone.",
+      "linked_gap_ids": [
+        "gap_rotation_proxy_signal",
+        "gap_empirical_protocol_reproducibility"
+      ],
+      "rationale": "If a proxy can predict instability, it justifies adaptive control without expensive Jacobian/Hessian computations and provides a concrete diagnostic tool independent of the specific optimizer."
+    },
+    {
+      "name": "adoe_improves_wallclock_to_target_fid",
+      "short_hypothesis": "Despite requiring an extra-gradient lookahead, ADOE will reach a target FID faster in wall-clock time than baseline TTUR+Adam and than non-adaptive extragradient/Tseng methods, because adaptive damping reduces wasted oscillatory steps and catastrophic restarts. Gains will be largest under small batch sizes and limited compute budgets.",
+      "linked_gap_ids": [
+        "gap_cost_stability_tradeoff",
+        "gap_rotational_adaptation",
+        "gap_empirical_protocol_reproducibility"
+      ],
+      "rationale": "The main practical objection to two-step methods is cost; a wall-clock hypothesis forces an end-to-end evaluation and can validate that stabilization is not merely theoretical but computationally advantageous."
+    },
+    {
+      "name": "adoe_reduces_sensitivity_to_lr_ratio",
+      "short_hypothesis": "ADOE will show a wider stable region over (η_generator, η_discriminator) and TTUR ratios than baselines, maintaining comparable FID/IS across a broader hyperparameter grid. In particular, adaptive damping will compensate for overly aggressive discriminator updates by suppressing rotation-driven oscillations.",
+      "linked_gap_ids": [
+        "gap_tttr_optimism_interaction",
+        "gap_rotational_adaptation",
+        "gap_empirical_protocol_reproducibility"
+      ],
+      "rationale": "Hyperparameter brittleness is a key pain point in GAN practice; demonstrating a larger stability region is an actionable benefit and directly tests whether adaptive damping meaningfully interacts with TTUR."
+    },
+    {
+      "name": "adaptive_damping_outperforms_fixed_lambda_under_noise",
+      "short_hypothesis": "Under increased stochasticity (smaller batch, injected gradient noise, or heavier augmentation), adaptive damping will outperform any single fixed damping coefficient λ in terms of both stability (fewer collapses) and sample quality (better median FID across seeds). Fixed λ will either under-damp (cycling) or over-damp (slow convergence) depending on noise level, while adaptive λ will track regime changes during training.",
+      "linked_gap_ids": [
+        "gap_stochastic_theory_for_adaptive_damping",
+        "gap_rotation_proxy_signal",
+        "gap_rotational_adaptation"
+      ],
+      "rationale": "Noise is where adaptive control should matter most; this hypothesis cleanly compares adaptation vs tuning and motivates follow-up theory by identifying when adaptation provides robustness benefits."
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # Idea Generator
 
-A **standalone** tool for AI research workflows: from a topic file (Markdown) you can run a **4-phase research pipeline** (literature review → gaps/hypotheses → direction + critique → experiment plan) or **quickly generate many ideas** (idea generation). Inspired by [AI Scientist v2](https://github.com/SakanaAI/AI-Scientist-v2).
+A **standalone** tool for AI research workflows: from a topic file (Markdown) you can run a **research pipeline** (literature review → hypotheses → feasibility selection → direction → experiment plan → multi-persona critique) or **quickly generate many ideas** (idea generation). Inspired by [AI Scientist v2](https://github.com/SakanaAI/AI-Scientist-v2).
 
 ---
 
@@ -8,7 +8,7 @@ A **standalone** tool for AI research workflows: from a topic file (Markdown) yo
 
 | Mode | Command | Purpose |
 |------|---------|---------|
-| **Research pipeline** | `--pipeline` or `--phase <name>` | Structured research flow: lit review → gaps/hypotheses → choose direction + critique → experiment plan. Each step produces one JSON file. |
+| **Research pipeline** | `--pipeline` or `--phase <name>` | Structured flow: lit review → hypotheses → feasibility selection → direction → experiment plan → multi-persona critique. Each step produces one JSON file. |
 | **Idea generation** | `--topic-file ...` (without `--pipeline`) | Quickly generate multiple research proposals from a topic, with search + reflection; output is one JSON file (array of ideas). |
 | **Hypothesis expansion** | `--expand-hypotheses` | From a topic or one idea JSON → list of sub-hypotheses (use standalone or with the pipeline). |
 
@@ -16,7 +16,7 @@ A **standalone** tool for AI research workflows: from a topic file (Markdown) yo
 
 ## Key features
 
-- **Research pipeline (4 phases):** Structured literature review (strengths/weaknesses/gaps) → Gaps + hypotheses → Direction (proposal + critique + evidence) → Experiment plan (metrics, baselines, datasets, implementation_steps, min_config). Run the full pipeline or a single phase using existing files.
+- **Research pipeline (6 steps):** Literature review → Gaps + hypotheses → **Feasibility selection** (chọn ý tưởng khả thi nhất) → Direction → Experiment plan → **Multi-persona critique** (ICML reviewer, NeurIPS reviewer, professor, skeptic). Run the full pipeline or a single phase using existing files.
 - **Idea generation:** From a topic file → multiple research ideas (Name, Title, Hypothesis, Related Work, References, Abstract, Experiments, Risk Factors) with reflection + search.
 - **Literature search (4 sources):** Semantic Scholar, arXiv (default), PubMed, OpenAlex (optional). Used in both pipeline and idea generation.
 - **Multi-model:** OpenAI (gpt-4o, o1, o3-mini, gpt-5.2), Anthropic Claude, Gemini, Ollama (Qwen, DeepSeek, ...).
@@ -90,15 +90,17 @@ Use with `--topic-file path/to/topic.md` (pipeline or idea generation).
 
 ---
 
-### Research pipeline (4 phases)
+### Research pipeline (6 steps)
 
-Flow: **Literature review** → **Gaps & hypotheses** → **Direction + critique** → **Experiment plan**. Each phase writes one JSON file with a defined schema.
+Flow: **Literature review** → **Gaps & hypotheses** → **Feasibility selection** → **Direction** → **Experiment plan** → **Critique (multi-persona)**. Each step writes one JSON file.
 
 **Run full pipeline:**
 
 ```bash
 idea-generator --topic-file topics/gan_optimization_adoe.md --pipeline
 ```
+
+Optional: `--skip-feasibility` or `--skip-critique` to omit those steps. Use `python -m idea_generator` if the `idea-generator` command is not installed.
 
 **Run a single phase** (when you already have the previous phase’s output):
 
@@ -109,20 +111,29 @@ idea-generator --topic-file topics/gan_optimization_adoe.md --phase literature_r
 # Phase 2: from lit review
 idea-generator --phase hypotheses --from-literature output/gan_optimization_adoe.lit_review.json
 
-# Phase 3: from lit review + hypotheses
-idea-generator --phase direction --from-literature output/gan_optimization_adoe.lit_review.json --from-hypotheses output/gan_optimization_adoe.hypotheses.json
+# Feasibility: choose most feasible hypothesis (from hypotheses)
+idea-generator --phase feasibility_selection --from-hypotheses output/gan_optimization_adoe.hypotheses.json
 
-# Phase 4: from direction
+# Phase 3: direction (optionally use chosen hypothesis from feasibility)
+idea-generator --phase direction --from-literature output/gan_optimization_adoe.lit_review.json --from-hypotheses output/gan_optimization_adoe.hypotheses.json [--from-feasibility output/gan_optimization_adoe.feasibility.json]
+
+# Phase 4: experiment plan
 idea-generator --phase experiment_plan --from-direction output/gan_optimization_adoe.direction.json
+
+# Critique: multi-persona review (ICML reviewer, NeurIPS reviewer, professor, skeptic)
+idea-generator --phase critique --from-direction output/gan_optimization_adoe.direction.json [--from-experiment-plan output/gan_optimization_adoe.experiment_plan.json]
 ```
 
 **Pipeline config** in `config/default.yaml`:
 
 ```yaml
 research_pipeline:
-  literature_reflections: 8   # Reflection rounds for Phase 1
-  direction_reflections: 5    # Reflection rounds for Phase 3
-  max_hypotheses: 10         # Max hypotheses for Phase 2 (5–20)
+  literature_reflections: 8
+  direction_reflections: 5
+  max_hypotheses: 10
+  skip_feasibility: false
+  skip_critique: false
+  critique_persona_ids: null   # null = all; or e.g. [icml_reviewer, senior_professor]
 ```
 
 **Output format per phase:**
@@ -130,9 +141,13 @@ research_pipeline:
 | File | Main contents |
 |------|----------------|
 | `*.lit_review.json` | `topic_summary`, `entries` (source, citation, approach_summary, strengths, weaknesses, research_gaps), `synthesis` |
-| `*.hypotheses.json` | `gaps` (id, description, related_entries, priority?), `hypotheses` (name, short_hypothesis, linked_gap_ids, rationale) |
-| `*.direction.json` | Full proposal (Name, Title, Related Work, References, Abstract, Experiments, Risk Factors) + `chosen_hypothesis`, `critique`, `evidence_summary` |
-| `*.experiment_plan.json` | `proposal_ref`, `metrics`, `baselines`, `datasets`, `implementation_steps`, `min_config` (hardware, min_data, framework, estimated_time) |
+| `*.hypotheses.json` | `gaps`, `hypotheses` (name, short_hypothesis, linked_gap_ids, rationale) |
+| `*.feasibility.json` | `chosen_hypothesis_name`, `rationale`, `feasibility_scores` (per-hypothesis score and reason) |
+| `*.direction.json` | Full proposal + `chosen_hypothesis`, `critique`, `evidence_summary` |
+| `*.experiment_plan.json` | `proposal_ref`, `metrics`, `baselines`, `datasets`, `implementation_steps`, `min_config` |
+| `*.critique.json` | `direction_ref`, `reviews` (per persona: summary, strengths, weaknesses, score, recommendation) |
+
+**Critique personas** (defined in `prompts.py`): ICML Reviewer, NeurIPS/ICLR Reviewer, Senior Professor (PI), Skeptic Reviewer. Each produces a structured review (summary, strengths, weaknesses, score 1–10, recommendation).
 
 You can export the lit review to CSV (e.g. from Excel), edit it, and reuse it as input for Phase 2.
 
@@ -148,12 +163,25 @@ You can export the lit review to CSV (e.g. from Excel), edit it, and reuse it as
 
 **Citations:** Ideas and directions include **References** (author, year, title, url/doi). Related Work should cite as `[Author (Year)]`; each cited source must have an entry in References. Search results provide **CITE** lines for the LLM to copy.
 
+### When is search used?
+
+Search tools are used in **three** places:
+
+| Context | When | Purpose |
+|--------|------|--------|
+| **Literature review (Phase 1)** | Mỗi round trong phase 1, LLM có thể gọi một search tool (arXiv, Tavily, …) hoặc FinalizeLiteratureReview. Số round = `literature_reflections` (mặc định **12**). | Thu thập nhiều paper/approach để viết lit review chi tiết (khuyến nghị ≥ 8 entries, search 4–6+ lần với query đa dạng). |
+| **Direction (Phase 3)** | Mỗi round trong phase 3, LLM có thể search hoặc FinalizeDirection. Số round = `direction_reflections` (5). | Bổ sung tài liệu khi viết proposal (related work, evidence). |
+| **Idea generation** | Mỗi idea có `num_reflections` round (5); mỗi round có thể search hoặc FinalizeIdea. | Tìm tài liệu cho từng ý tưởng (related work, references). |
+
+**Đảm bảo literature review chi tiết:** Prompt đã được cấu hình để yêu cầu search nhiều lần (nhiều query, nhiều nguồn) và ít nhất 8 entries trước khi finalize. Tăng `literature_reflections` trong `config/default.yaml` (ví dụ 15–20) nếu bạn muốn còn nhiều round hơn để search thêm.
+
 ### Search tools (used by pipeline and idea generation)
 
 | Tool             | Default | Enable/disable              | Notes |
 |------------------|---------|-----------------------------|-------|
-| Semantic Scholar | On      | Always on                   | CS/ML; `S2_API_KEY` optional |
+| Semantic Scholar | Off     | `--s2` or `s2_enabled: true`| CS/ML; cần `S2_API_KEY` |
 | arXiv            | On      | `--no-arxiv` to disable     | Preprints |
+| Tavily           | On      | `--no-tavily` to disable    | Web + literature; cần `TAVILY_API_KEY` |
 | PubMed           | Off     | `--pubmed` or YAML          | Medicine, biology |
 | OpenAlex         | Off     | `--openalex` or YAML        | Broad coverage, DOI; `OPENALEX_MAILTO` optional |
 
@@ -276,7 +304,7 @@ idea_recommendation/
 │   ├── __main__.py
 │   ├── cli.py              # CLI (generate + expand + pipeline)
 │   ├── core.py              # Generation loop, tools, validation
-│   ├── research_pipeline.py # 4-phase pipeline (lit review -> hypotheses -> direction -> experiment plan)
+│   ├── research_pipeline.py # Pipeline: lit review -> hypotheses -> feasibility -> direction -> experiment plan -> critique
 │   ├── expansion.py         # Hypothesis expansion
 │   ├── llm.py               # Multi-provider LLM client
 │   ├── prompts.py           # Prompts + expansion prompts
@@ -316,8 +344,10 @@ idea_recommendation/
 idea-generator --topic-file topics/example.md --pipeline
 idea-generator --phase literature_review --topic-file topics/example.md
 idea-generator --phase hypotheses --from-literature output/example.lit_review.json
-idea-generator --phase direction --from-literature output/example.lit_review.json --from-hypotheses output/example.hypotheses.json
+idea-generator --phase feasibility_selection --from-hypotheses output/example.hypotheses.json
+idea-generator --phase direction --from-literature output/example.lit_review.json --from-hypotheses output/example.hypotheses.json [--from-feasibility output/example.feasibility.json]
 idea-generator --phase experiment_plan --from-direction output/example.direction.json
+idea-generator --phase critique --from-direction output/example.direction.json [--from-experiment-plan output/example.experiment_plan.json]
 
 # Idea generation (batch of ideas from topic)
 idea-generator --topic-file topics/example.md --max-generations 5 --output output/ideas.json

@@ -29,8 +29,10 @@ novelty_model: ""
 # How often to write a checkpoint (every N ideas)
 checkpoint_interval: 1
 
-# Enable the arXiv search tool alongside Semantic Scholar
+# Search tools (no S2 key required by default: use arXiv + Tavily)
+s2_enabled: false
 arxiv_enabled: true
+tavily_enabled: true
 
 # Enable PubMed search (biology, medicine, NLP)
 pubmed_enabled: false
@@ -44,10 +46,18 @@ resume: false
 # Override the system prompt entirely (leave empty to use the built-in prompt)
 system_prompt_override: ""
 
-# Research pipeline (4-phase): literature review -> hypotheses -> direction -> experiment plan
+# Research pipeline: lit review -> hypotheses -> feasibility selection -> direction -> experiment plan -> critique
 # Use --pipeline to run full pipeline, or --phase <name> with --from-* for a single phase
+# --skip-feasibility / --skip-critique to omit those steps in full pipeline
 pipeline_mode: false
 research_pipeline:
-  literature_reflections: 8
-  direction_reflections: 5
-  max_hypotheses: 10
+  # Literature review: number of rounds; each round = one LLM turn (search or finalize). Use 12+ for a detailed review with many searches.
+  literature_reflections: 2
+  direction_reflections: 2
+  max_hypotheses: 1
+  skip_feasibility: false
+  skip_critique: false
+  # Use OpenAI Structured Outputs (response_format json_schema) when model supports it (gpt-4o, gpt-4.1, etc.). Reduces JSON parse failures.
+  structured_output: true
+  # Critique personas: list of ids to run, or omit for all. Options: icml_reviewer, neurips_reviewer, senior_professor, skeptic_reviewer
+  critique_persona_ids: null

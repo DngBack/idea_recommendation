@@ -1,0 +1,65 @@
+{
+  "Name": "RotationProxy",
+  "Title": "Cheap Rotation Proxies as Early-Warning Signals for GAN Training Instability",
+  "Short Hypothesis": "Simple, low-cost online proxies for rotational game dynamics—e.g., successive-gradient disagreement (cosine similarity between F_t and F_{t-1}), norm/angle volatility, and a one-step finite-difference skew-symmetry score—strongly predict upcoming GAN instabilities (FID blow-ups, divergence/NaNs, discriminator saturation) and do so better than raw losses/accuracies alone, especially under stochastic training noise.",
+  "Related Work": "GAN training can be framed as finding equilibria in smooth two-player games, where the joint gradient field F has a Jacobian that is generally non-symmetric; the resulting complex eigenvalues induce oscillations/limit cycles that standard simultaneous gradient methods amplify [Mescheder et al. (2017)]. This motivates algorithms that explicitly counteract rotation or exploit “optimism”/lookahead, such as consensus optimization in GANs [Mescheder et al. (2017)], Symplectic Gradient Adjustment (SGA) derived from decomposing game dynamics into potential and Hamiltonian components [Balduzzi et al. (2018); Balduzzi et al. (2019)], and optimistic/extragradient-style methods for saddle-point/variational inequality problems [Korpelevich (1976); Daskalakis et al. (2018); Gidel et al. (2018)]. These works provide strong theoretical motivation that increasing rotational structure is associated with cycling and instability, but they do not yield a practical, inexpensive *predictor* of impending failure that can be monitored during large-scale noisy GAN training. We build directly on the Jacobian-decomposition view: instead of (only) designing better optimizers, we test whether rotation can be detected early via cheap proxies computed from already-available quantities (consecutive gradients/updates) and used as an actionable early-warning metric. Practitioner discussions also highlight that GAN failures often appear abruptly and are not well-captured by losses, motivating auxiliary diagnostics beyond raw objectives (see, e.g., commentary on GAN numerics and dynamics) (GANs are Broken in More than One Way: The Numerics of GANs).",
+  "References": [
+    {
+      "author": "Mescheder, Lars; Nowozin, Sebastian; Geiger, Andreas",
+      "year": 2017,
+      "title": "The Numerics of GANs",
+      "url": "http://papers.neurips.cc/paper/6779-the-numerics-of-gans.pdf"
+    },
+    {
+      "author": "Balduzzi, David; Racanière, Sébastien; Martens, James; Foerster, Jakob; Tuyls, Karl; Graepel, Thore",
+      "year": 2018,
+      "title": "The Mechanics of n-Player Differentiable Games",
+      "url": "https://proceedings.mlr.press/v80/balduzzi18a/balduzzi18a.pdf"
+    },
+    {
+      "author": "Balduzzi, David; et al.",
+      "year": 2019,
+      "title": "Differentiable Game Mechanics",
+      "url": "https://jmlr.csail.mit.edu/papers/volume20/19-008/19-008.pdf"
+    },
+    {
+      "author": "Korpelevich, G. M.",
+      "year": 1976,
+      "title": "The extragradient method for finding saddle points and other problems",
+      "url": "https://doi.org/10.1016/0041-5553(76)90055-9"
+    },
+    {
+      "author": "Daskalakis, Constantinos; Ilyas, Andrew; Syrgkanis, Vasilis; Zeng, Haoxiang",
+      "year": 2018,
+      "title": "Training GANs with Optimism",
+      "url": "https://arxiv.org/abs/1711.00141"
+    },
+    {
+      "author": "Gidel, Gauthier; Berard, Hugo; Vignoud, Gaëtan; Vincent, Pascal; Lacoste-Julien, Simon",
+      "year": 2018,
+      "title": "A Variational Inequality Perspective on Generative Adversarial Networks",
+      "url": "https://arxiv.org/abs/1802.10551"
+    },
+    {
+      "author": "Nielsen, Michael (inference.vc)",
+      "year": 2017,
+      "title": "GANs are Broken in More than One Way: The Numerics of GANs (notes)",
+      "url": "https://www.inference.vc/my-notes-on-the-numerics-of-gans/"
+    }
+  ],
+  "Abstract": "We propose to study whether GAN training failures can be *predicted* (not merely explained post-hoc) using cheap online signals that approximate the strength of rotational dynamics in the underlying min–max game. Building on the Jacobian-decomposition view of differentiable games, we define a family of low-cost “rotation proxies” that can be computed from consecutive gradients and/or parameter updates with negligible overhead. We will create a large-scale benchmark of GAN training runs across hyperparameters and noise regimes, label multiple instability types (FID spikes, divergence/NaNs, discriminator saturation, collapse), and evaluate how well each proxy provides early warnings at fixed prediction horizons. The goal is to produce (i) a validated diagnostic suite with calibrated thresholds, (ii) empirical evidence linking rotational proxies to real instabilities beyond toy games, and (iii) practical guidance for using these proxies in automated training monitors or as triggers for adaptive stabilization strategies.",
+  "Experiments": "1) Proxy definitions (computed per training step or every k steps):\n- Successive-gradient cosine: c_t = cos(F_t, F_{t-1}) where F_t is the concatenated joint gradient for (G,D) (or separate cosines for G and D).\n- Angle/norm volatility: Δlog||F_t||, rolling variance of ||F|| and of c_t.\n- Update–gradient mismatch: m_t = cos(Δθ_t, F_t) (captures optimizer-induced rotation vs field direction).\n- One-step finite-difference skew proxy: estimate local Jacobian action v_t ≈ (F_t − F_{t-1}) / ||Δθ_{t-1}|| with direction u_{t-1} = Δθ_{t-1}/||Δθ_{t-1}||, then define s_t = ||Proj_perp(u_{t-1}) v_t|| as a cheap “non-conservative/rotational action” score (large change in gradient orthogonal to the step direction). Variants computed separately for G and D.\n\n2) Benchmark suite (instability-rich):\n- Architectures/datasets: DCGAN/WGAN-GP on CIFAR-10; StyleGAN2-ADA (smaller config) on FFHQ-64/LSUN-bedroom-64; optionally BigGAN-deep on CIFAR-10 if compute permits.\n- Noise/stochasticity knobs: batch size sweep (e.g., 16–256), augmentation strength (ADA), gradient noise injection, mixed precision on/off.\n- Hyperparameter sweeps: learning rates, TTUR ratios, β parameters, regularizers (R1, GP), and optimizer variants (SimGD/Adam, extragradient, optimistic).\n- Seeds: ≥10 per setting to estimate variability.\n\n3) Labeling instability events:\n- Hard failures: NaNs/Inf, loss explosion beyond threshold, discriminator output saturation (near-0/near-1 for prolonged window).\n- Quality failures: FID spike > X relative to rolling median; persistent mode collapse detected via precision/recall or intra-class diversity metrics.\n- Define event time t* and create prediction targets: will-fail within horizon H (e.g., 100, 500, 2k steps).\n\n4) Prediction evaluation:\n- Baselines: raw losses (G/D), D accuracy, ||F|| alone, gradient penalty magnitude, EMA of logits.\n- Models: simple threshold rules, logistic regression, random forest, and a small temporal model (1D conv/TCN) using only the proxies vs using losses.\n- Metrics: AUROC/AUPRC for “fail within H”, average lead time at fixed false-alarm rate, calibration (ECE), and robustness across architectures.\n- Statistical tests: bootstrap CIs over runs; ablate per-proxy and per-noise regime.\n\n5) Actionability study (optional but publishable add-on):\n- Use proxy-triggered interventions (e.g., temporarily reduce LR, increase regularization, or switch to extragradient for N steps) and measure reduction in failure rate and median FID vs always-on interventions.\n\nDeliverables: released dataset of time-series signals + event labels; open-source monitor implementation; paper with validated early-warning results and practical thresholds.",
+  "Risk Factors and Limitations": "- Confounding/scale sensitivity: gradient cosines and norm changes can be affected by adaptive optimizers, gradient clipping, EMA, and reparameterizations; requires careful normalization and per-optimizer calibration.\n- Noise vs rotation: under high stochasticity, disagreement between successive gradients may reflect sampling noise rather than true rotational structure, potentially increasing false positives.\n- Event definition ambiguity: “instability” can be subjective (FID noise, temporary spikes); must pre-register multiple event definitions and report sensitivity.\n- Causality: strong correlation does not imply rotation causes every failure; failures can stem from capacity imbalance, data issues, or regularization artifacts.\n- Overhead/engineering: collecting full joint gradients every step may be costly for large models; mitigation is to compute proxies from already-computed per-network gradients, use subsampling (every k steps), or use low-rank sketching.\n- Generalization: predictors tuned on CIFAR/FFHQ-64 may not transfer to high-res or different GAN objectives; include cross-domain transfer tests and report limits.",
+  "chosen_hypothesis": {
+    "name": "cheap_rotation_proxy_predicts_instability",
+    "short_hypothesis": "Simple, low-cost signals—such as successive gradient disagreement (cosine similarity between F_t and F_{t-1}), increasing gradient norms, or a one-step finite-difference skew-symmetry estimate—will significantly correlate with upcoming instability (FID blow-ups, loss divergence, or discriminator saturation) under noisy GAN training. The correlation will be stronger than using raw loss values alone."
+  },
+  "critique": [
+    "Rotation-proxy signals may be dominated by stochastic gradient noise (especially at small batch sizes), producing high false-alarm rates unless denoised (EMA, windowing) and carefully calibrated per setting.",
+    "Consecutive-gradient cosine can change due to benign curvature or optimizer adaptivity (Adam’s preconditioning) rather than true game rotation; without controls it may not specifically measure antisymmetric Jacobian effects.",
+    "Instabilities like mode collapse or discriminator overfitting can occur without a clear “rotational ramp-up,” so the proxy may miss important failure modes (limited recall).",
+    "FID itself is noisy and delayed; defining ‘upcoming instability’ via FID thresholds could bias results toward events that are easiest to detect. Multiple labels (NaNs, saturation, diversity collapse) are necessary.",
+    "Even if predictive, the work may be criticized as “monitoring not solving.” The proposal mitigates this by including an optional intervention study showing that proxy-triggered actions reduce failure rates without always-on stabilization."
+  ],
+  "evidence_summary": "Theory and empirical analyses of GAN optimization identify non-symmetric Jacobians and associated rotational (Hamiltonian) dynamics as a primary source of oscillations and divergence under simultaneous gradient methods [Mescheder et al. (2017)]. Differentiable game mechanics explicitly decomposes dynamics into potential vs rotational components and motivates methods (e.g., SGA) that counter rotation to reach stable fixed points [Balduzzi et al. (2018); Balduzzi et al. (2019)], while extragradient/optimistic methods are known to stabilize bilinear/saddle problems by anticipating rotational behavior [Korpelevich (1976); Daskalakis et al. (2018); Gidel et al. (2018)]. Collectively, this literature supports the core premise that “more rotation” precedes or accompanies unstable cycling; our contribution is to operationalize this into inexpensive, online proxies and rigorously validate their predictive power on modern, noisy GAN training runs beyond toy games."
+}

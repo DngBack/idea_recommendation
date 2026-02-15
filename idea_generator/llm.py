@@ -18,6 +18,25 @@ logger = logging.getLogger(__name__)
 
 MAX_NUM_TOKENS = 4096
 
+
+def _extract_openai_message_text(message: Any) -> str:
+    """Extract plain text from OpenAI message.content (string, None, or list of content blocks).
+    Reasoning models (e.g. gpt-5.2) may return content as a list of blocks with 'text' key."""
+    raw = getattr(message, "content", None)
+    if raw is None:
+        return ""
+    if isinstance(raw, str):
+        return raw
+    if isinstance(raw, list):
+        parts = []
+        for block in raw:
+            if isinstance(block, dict) and "text" in block:
+                parts.append(block["text"] or "")
+            elif hasattr(block, "text"):
+                parts.append(getattr(block, "text", "") or "")
+        return "\n".join(p for p in parts if p).strip() if parts else ""
+    return str(raw) if raw else ""
+
 AVAILABLE_LLMS = [
     # Anthropic Claude (direct)
     "claude-3-5-sonnet-20240620",
@@ -139,6 +158,15 @@ def create_client(model: str) -> tuple[Any, str]:
         raise ValueError(f"Model {model} not supported. See AVAILABLE_LLMS for options.")
 
 
+def model_supports_structured_output(model: str) -> bool:
+    """True if this model supports OpenAI Structured Outputs (response_format json_schema)."""
+    if "o1" in model or "o3" in model:
+        return False
+    return bool(
+        "gpt-4o" in model or "gpt-4.1" in model or "gpt-5.2" in model
+    )
+
+
 @backoff.on_exception(
     backoff.expo,
     (
@@ -157,8 +185,14 @@ def get_response_from_llm(
     msg_history: list[dict[str, Any]] | None = None,
     temperature: float = 0.7,
     max_tokens: int = MAX_NUM_TOKENS,
+    response_format: dict[str, Any] | None = None,
 ) -> tuple[str, list[dict[str, Any]]]:
-    """Send a prompt to the LLM and return (response_text, updated_msg_history)."""
+    """Send a prompt to the LLM and return (response_text, updated_msg_history).
+
+    If response_format is provided and the backend supports it (OpenAI GPT with
+    Structured Outputs), the model output is constrained to the given JSON schema.
+    See https://developers.openai.com/api/docs/guides/structured-outputs/
+    """
     if msg_history is None:
         msg_history = []
 
@@ -204,9 +238,9 @@ def get_response_from_llm(
             n=1,
             seed=0,
         )
-        content = response.choices[0].message.content
-        new_msg_history = new_msg_history + [{"role": "assistant", "content": content}]
-        return content, new_msg_history
+        content = _extract_openai_message_text(response.choices[0].message)
+        new_msg_history = new_msg_history + [{"role": "assistant", "content": content or ""}]
+        return content or "", new_msg_history
 
     # --- GPT models (including gpt-5.2 / gpt-5.2-pro with reasoning "thinking") ---
     if "gpt" in model:
@@ -225,10 +259,21 @@ def get_response_from_llm(
         else:
             kwargs["temperature"] = temperature
             kwargs["max_tokens"] = max_tokens
+        if response_format and model_supports_structured_output(model):
+            kwargs["response_format"] = response_format
         response = client.chat.completions.create(**kwargs)
-        content = response.choices[0].message.content
-        new_msg_history = new_msg_history + [{"role": "assistant", "content": content}]
-        return content, new_msg_history
+        msg = response.choices[0].message
+        content = _extract_openai_message_text(msg)
+        if not content and hasattr(msg, "content") and msg.content:
+            logger.warning("OpenAI message.content present but extracted text empty: %s", type(msg.content))
+        # Retry once on empty response (e.g. reasoning model returned only thinking block)
+        if not content and model.startswith("gpt-5.2"):
+            logger.warning("GPT-5.2 returned empty text, retrying once.")
+            response = client.chat.completions.create(**kwargs)
+            msg = response.choices[0].message
+            content = _extract_openai_message_text(msg)
+        new_msg_history = new_msg_history + [{"role": "assistant", "content": content or ""}]
+        return content or "", new_msg_history
 
     # --- Gemini ---
     if "gemini" in model:
