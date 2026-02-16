@@ -2,53 +2,14 @@
   "topic_summary": "# Title: Stabilizing GAN Min-Max Optimization with Adaptive Damped Optimistic Extragradient (ADOE)\n## Keywords GAN, min-max optimization, saddle-point, extragradient, mirror-prox, optimistic mirror descent, TTUR, consensus regularization, Jacobian-rotation, stochastic optimization\n## TL;DR Can we train GANs faster and more stably by explicitly controlling the “rotational” dynamics of the min–max game (instead of only tuning Adam hyperparameters)?\n## Abstract\nTraining GANs is a stochastic saddle-point (min–max) optimization problem:\nmin_θ max_φ  V(θ, φ),\nwhere θ are generator parameters and φ are discriminator parameters. In practice, this game structure often induces oscillations (limit cycles), instability, sensitivity to learning-rate ratios, and mode collapse—especially under noisy gradients and limited compute budgets.\n\nThis topic proposes an optimization-centric algorithmic contribution: Adaptive Damped Optimistic Extragradient (ADOE).\nCore idea: combine (1) extragradient / lookahead updates to anticipate adversarial responses, (2) optimism to reduce cycling in games, and (3) an adaptive damping term that targets the rotational component of the game dynamics.\nThe damping coefficient λ_t is adjusted online using cheap signals of oscillation (e.g., gradient disagreement across steps, increasing gradient norms, or proxy measures tied to the game vector field), so the method stabilizes when the dynamics become “rotational” and relaxes when optimization is well-behaved.\n\nExpected contributions in generated research proposals:\n1) Mathematical formulation: define the GAN game vector field F(θ, φ) = [∇_θ V; -∇_φ V] and propose an update rule using extragradient + optimism + adaptive damping/regularization.\n2) Algorithm: provide pseudocode with TTUR-style step sizes (η_θ ≠ η_φ) and an adaptive λ_t schedule.\n3) Experiments: evaluate on CIFAR-10 / CelebA (small-scale first) with standard GAN losses (hinge/WGAN-GP), reporting both quality and efficiency:\n   - FID/IS vs wall-clock time, steps-to-target, stability across seeds\n   - sensitivity to batch size and learning-rate ratios\n   - compute/memory overhead of any Jacobian-vector or Hessian-vector proxy (if used)\n4) Ablations (must): EG only vs EG+optimism vs EG+adaptive damping vs full ADOE; fixed λ vs adaptive λ; TTUR vs single LR; Adam vs SGD variants.\n5) Risk factors: extra gradient computations may increase per-step cost; damping may slow convergence if over-activated; proxies for rotational dynamics may be noisy.\n\nGoal: produce ideas that are publishable as optimization-for-GAN contributions—clear objective, algorithmic novelty tied to game dynamics, and rigorous, reproducible empirical evaluation under constrained compute.",
   "entries": [
     {
-      "source": "search",
+      "source": "arxiv",
       "citation": {
         "author": "",
         "year": "",
-        "title": "arthurmensch/Variational-Inequality-GAN: A pytorch ..",
-        "url": "https://github.com/arthurmensch/Variational-Inequality-GAN"
+        "title": "DogLayout: Denoising Diffusion GAN for Discrete and Continuous Layout Generation",
+        "url": "http://arxiv.org/abs/2412.00381v1"
       },
-      "approach_summary": "arthurmensch/Variational-Inequality-GAN: A pytorch ... - GitHub",
-      "strengths": [],
-      "weaknesses": [],
-      "research_gaps": []
-    },
-    {
-      "source": "search",
-      "citation": {
-        "author": "",
-        "year": "",
-        "title": "[PDF] Revisiting Stochastic Extragradient",
-        "url": "http://proceedings.mlr.press/v108/mishchenko20a/mishchenko20a.pdf"
-      },
-      "approach_summary": "[PDF] Revisiting Stochastic Extragradient",
-      "strengths": [],
-      "weaknesses": [],
-      "research_gaps": []
-    },
-    {
-      "source": "search",
-      "citation": {
-        "author": "",
-        "year": "",
-        "title": "[PDF] Zero-Infinity GAN: Stable Dynamics and Implicit Bias of Extragradient",
-        "url": "https://opt-ml.org/papers/2025/paper165.pdf"
-      },
-      "approach_summary": "[PDF] Zero-Infinity GAN: Stable Dynamics and Implicit Bias of Extragradient",
-      "strengths": [],
-      "weaknesses": [],
-      "research_gaps": []
-    },
-    {
-      "source": "search",
-      "citation": {
-        "author": "",
-        "year": "",
-        "title": "Reducing Noise in GAN Training with Variance ..",
-        "url": "https://www.semanticscholar.org/paper/Reducing-Noise-in-GAN-Training-with-Variance-Chavdarova-Gidel/db56581b2f21b78bf063d47a0f708aef915200e6"
-      },
-      "approach_summary": "Reducing Noise in GAN Training with Variance ... - Semantic Scholar",
+      "approach_summary": "Layout Generation aims to synthesize plausible arrangements from given elements. Currently, the predominant methods in layout generation are Generative Adversarial Networks (GANs) and diffusion models, each presenting its own set of challenges. GANs typically struggle with handling discrete data due to their requirement for differentiable generated samples and have historically circumvented the direct generation of discrete labels by treating them as fixed conditions. Conversely, diffusion-based models, despite achieving state-of-the-art performance across several metrics, require extensive sampling steps which lead to significant time costs. To address these limitations, we propose \\textbf{DogLayout} (\\textbf{D}en\\textbf{o}ising Diffusion \\textbf{G}AN \\textbf{Layout} model), which integrates a diffusion process into GANs to enable the generation of discrete label data and significantly reduce diffusion's sampling time. Experiments demonstrate that DogLayout considerably reduces sampling costs by up to 175 times and cuts overlap from 16.43 to 9.59 compared to existing diffusion models, while also surpassing GAN based and other layout methods. Code is available at https://github.com/deadsmither5/DogLayout.",
       "strengths": [],
       "weaknesses": [],
       "research_gaps": []
@@ -58,62 +19,10 @@
       "citation": {
         "author": "",
         "year": "",
-        "title": "[1904.08598] Reducing Noise in GAN Training with Variance ..",
-        "url": "https://arxiv.org/abs/1904.08598"
+        "title": "SCPAT-GAN: Structural Constrained and Pathology Aware Convolutional Transformer-GAN for Virtual Histology Staining of Human Coronary OCT images",
+        "url": "http://arxiv.org/abs/2307.12138v1"
       },
-      "approach_summary": "[1904.08598] Reducing Noise in GAN Training with Variance ... - arXiv",
-      "strengths": [],
-      "weaknesses": [],
-      "research_gaps": []
-    },
-    {
-      "source": "search",
-      "citation": {
-        "author": "",
-        "year": "",
-        "title": "Distributed Extra-gradient with Optimal Complexity and...",
-        "url": "https://openreview.net/forum?id=b3itJyarLM0"
-      },
-      "approach_summary": "Distributed Extra-gradient with Optimal Complexity and...",
-      "strengths": [],
-      "weaknesses": [],
-      "research_gaps": []
-    },
-    {
-      "source": "search",
-      "citation": {
-        "author": "",
-        "year": "",
-        "title": "[PDF] Reducing Noise in GAN Training with Variance ..",
-        "url": "http://papers.neurips.cc/paper/8331-reducing-noise-in-gan-training-with-variance-reduced-extragradient.pdf"
-      },
-      "approach_summary": "[PDF] Reducing Noise in GAN Training with Variance ... - NIPS - NeurIPS",
-      "strengths": [],
-      "weaknesses": [],
-      "research_gaps": []
-    },
-    {
-      "source": "search",
-      "citation": {
-        "author": "",
-        "year": "",
-        "title": "[PDF] Robustness, Stability and Performance of Optimization Algorithms ...",
-        "url": "https://lup.lub.lu.se/luur/download?func=downloadFile&recordOId=9064517&fileOId=9064518"
-      },
-      "approach_summary": "[PDF] Robustness, Stability and Performance of Optimization Algorithms ...",
-      "strengths": [],
-      "weaknesses": [],
-      "research_gaps": []
-    },
-    {
-      "source": "search",
-      "citation": {
-        "author": "",
-        "year": "",
-        "title": "[PDF] Adaptive extra-gradient methods for min-max optimization and games",
-        "url": "https://polaris.imag.fr/panayotis.mertikopoulos/files/AdaProx.pdf"
-      },
-      "approach_summary": "[PDF] Adaptive extra-gradient methods for min-max optimization and games",
+      "approach_summary": "There is a significant need for the generation of virtual histological information from coronary optical coherence tomography (OCT) images to better guide the treatment of coronary artery disease. However, existing methods either require a large pixel-wisely paired training dataset or have limited capability to map pathological regions. To address these issues, we proposed a structural constrained, pathology aware, transformer generative adversarial network, namely SCPAT-GAN, to generate virtual stained H&E histology from OCT images. The proposed SCPAT-GAN advances existing methods via a novel design to impose pathological guidance on structural layers using transformer-based network.",
       "strengths": [],
       "weaknesses": [],
       "research_gaps": []
@@ -123,23 +32,10 @@
       "citation": {
         "author": "",
         "year": "",
-        "title": "[PDF] arXiv:1705.10461v3 [cs.LG] 11 Jun 2018",
-        "url": "https://arxiv.org/pdf/1705.10461"
+        "title": "Data-Efficient GAN Training Beyond (Just) Augmentations: A Lottery Ticket Perspective",
+        "url": "http://arxiv.org/abs/2103.00397v3"
       },
-      "approach_summary": "[PDF] arXiv:1705.10461v3 [cs.LG] 11 Jun 2018",
-      "strengths": [],
-      "weaknesses": [],
-      "research_gaps": []
-    },
-    {
-      "source": "search",
-      "citation": {
-        "author": "",
-        "year": "",
-        "title": "[PDF] arXiv:1808.01531v1 [cs.LG] 4 Aug 2018",
-        "url": "https://people.cs.umass.edu/~mahadeva/papers/gan-vi-2018.pdf"
-      },
-      "approach_summary": "[PDF] arXiv:1808.01531v1 [cs.LG] 4 Aug 2018",
+      "approach_summary": "Training generative adversarial networks (GANs) with limited real image data generally results in deteriorated performance and collapsed models. To conquer this challenge, we are inspired by the latest observation, that one can discover independently trainable and highly sparse subnetworks (a.k.a., lottery tickets) from GANs. Treating this as an inductive prior, we suggest a brand-new angle towards data-efficient GAN training: by first identifying the lottery ticket from the original GAN using the small training set of real images; and then focusing on training that sparse subnetwork by re-using the same set. We find our coordinated framework to offer orthogonal gains to existing real image data augmentation methods, and we additionally present a new feature-level augmentation that can be applied together with them. Comprehensive experiments endorse the effectiveness of our proposed framework, across various GAN architectures (SNGAN, BigGAN, and StyleGAN-V2) and diverse datasets (CIFAR-10, CIFAR-100, Tiny-ImageNet, ImageNet, and multiple few-shot generation datasets). Codes are available at: https://github.com/VITA-Group/Ultra-Data-Efficient-GAN-Training.",
       "strengths": [],
       "weaknesses": [],
       "research_gaps": []
@@ -149,36 +45,218 @@
       "citation": {
         "author": "",
         "year": "",
-        "title": "[1705.10461] The Numerics of GANs - arXiv",
-        "url": "https://arxiv.org/abs/1705.10461"
+        "title": "Sequential Attention GAN for Interactive Image Editing",
+        "url": "http://arxiv.org/abs/1812.08352v4"
       },
-      "approach_summary": "[1705.10461] The Numerics of GANs - arXiv",
+      "approach_summary": "Most existing text-to-image synthesis tasks are static single-turn generation, based on pre-defined textual descriptions of images. To explore more practical and interactive real-life applications, we introduce a new task - Interactive Image Editing, where users can guide an agent to edit images via multi-turn textual commands on-the-fly. In each session, the agent takes a natural language description from the user as the input and modifies the image generated in the previous turn to a new design, following the user description. The main challenges in this sequential and interactive image generation task are two-fold: 1) contextual consistency between a generated image and the provided textual description; 2) step-by-step region-level modification to maintain visual consistency across the generated image sequence in each session. To address these challenges, we propose a novel Sequential Attention Generative Adversarial Net-work (SeqAttnGAN), which applies a neural state tracker to encode the previous image and the textual description in each turn of the sequence, and uses a GAN framework to generate a modified version of the image that is consistent with the preceding images and coherent with the description. To achieve better region-specific refinement, we also introduce a sequential attention mechanism into the model. To benchmark on the new task, we introduce two new datasets, Zap-Seq and DeepFashion-Seq, which contain multi-turn sessions with image-description sequences in the fashion domain. Experiments on both datasets show that the proposed SeqAttnGANmodel outperforms state-of-the-art approaches on the interactive image editing task across all evaluation metrics including visual quality, image sequence coherence, and text-image consistency.",
       "strengths": [],
       "weaknesses": [],
       "research_gaps": []
     },
     {
-      "source": "search",
+      "source": "arxiv",
       "citation": {
         "author": "",
         "year": "",
-        "title": "(PDF) The Numerics of GANs - ResearchGate",
-        "url": "https://www.researchgate.net/publication/317241056_The_Numerics_of_GANs"
+        "title": "Reducing Noise in GAN Training with Variance Reduced Extragradient",
+        "url": "http://arxiv.org/abs/1904.08598v3"
       },
-      "approach_summary": "(PDF) The Numerics of GANs - ResearchGate",
+      "approach_summary": "We study the effect of the stochastic gradient noise on the training of generative adversarial networks (GANs) and show that it can prevent the convergence of standard game optimization methods, while the batch version converges. We address this issue with a novel stochastic variance-reduced extragradient (SVRE) optimization algorithm, which for a large class of games improves upon the previous convergence rates proposed in the literature. We observe empirically that SVRE performs similarly to a batch method on MNIST while being computationally cheaper, and that SVRE yields more stable GAN training on standard datasets.",
       "strengths": [],
       "weaknesses": [],
       "research_gaps": []
     },
     {
-      "source": "search",
+      "source": "arxiv",
       "citation": {
         "author": "",
         "year": "",
-        "title": "Numerics of GANs: Convergence and Stability - Emergent Mind",
-        "url": "https://www.emergentmind.com/articles/1705.10461"
+        "title": "Recurrent Topic-Transition GAN for Visual Paragraph Generation",
+        "url": "http://arxiv.org/abs/1703.07022v2"
       },
-      "approach_summary": "Numerics of GANs: Convergence and Stability - Emergent Mind",
+      "approach_summary": "A natural image usually conveys rich semantic content and can be viewed from different angles. Existing image description methods are largely restricted by small sets of biased visual paragraph annotations, and fail to cover rich underlying semantics. In this paper, we investigate a semi-supervised paragraph generative framework that is able to synthesize diverse and semantically coherent paragraph descriptions by reasoning over local semantic regions and exploiting linguistic knowledge. The proposed Recurrent Topic-Transition Generative Adversarial Network (RTT-GAN) builds an adversarial framework between a structured paragraph generator and multi-level paragraph discriminators. The paragraph generator generates sentences recurrently by incorporating region-based visual and language attention mechanisms at each step. The quality of generated paragraph sentences is assessed by multi-level adversarial discriminators from two aspects, namely, plausibility at sentence level and topic-transition coherence at paragraph level. The joint adversarial training of RTT-GAN drives the model to generate realistic paragraphs with smooth logical transition between sentence topics. Extensive quantitative experiments on image and video paragraph datasets demonstrate the effectiveness of our RTT-GAN in both supervised and semi-supervised settings. Qualitative results on telling diverse stories for an image also verify the interpretability of RTT-GAN.",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "arxiv",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "Diffusion-GAN: Training GANs with Diffusion",
+        "url": "http://arxiv.org/abs/2206.02262v4"
+      },
+      "approach_summary": "Generative adversarial networks (GANs) are challenging to train stably, and a promising remedy of injecting instance noise into the discriminator input has not been very effective in practice. In this paper, we propose Diffusion-GAN, a novel GAN framework that leverages a forward diffusion chain to generate Gaussian-mixture distributed instance noise. Diffusion-GAN consists of three components, including an adaptive diffusion process, a diffusion timestep-dependent discriminator, and a generator. Both the observed and generated data are diffused by the same adaptive diffusion process. At each diffusion timestep, there is a different noise-to-data ratio and the timestep-dependent discriminator learns to distinguish the diffused real data from the diffused generated data. The generator learns from the discriminator's feedback by backpropagating through the forward diffusion chain, whose length is adaptively adjusted to balance the noise and data levels. We theoretically show that the discriminator's timestep-dependent strategy gives consistent and helpful guidance to the generator, enabling it to match the true data distribution. We demonstrate the advantages of Diffusion-GAN over strong GAN baselines on various datasets, showing that it can produce more realistic images with higher stability and data efficiency than state-of-the-art GANs.",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "arxiv",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "Ensembling Off-the-shelf Models for GAN Training",
+        "url": "http://arxiv.org/abs/2112.09130v3"
+      },
+      "approach_summary": "The advent of large-scale training has produced a cornucopia of powerful visual recognition models. However, generative models, such as GANs, have traditionally been trained from scratch in an unsupervised manner. Can the collective \"knowledge\" from a large bank of pretrained vision models be leveraged to improve GAN training? If so, with so many models to choose from, which one(s) should be selected, and in what manner are they most effective? We find that pretrained computer vision models can significantly improve performance when used in an ensemble of discriminators. Notably, the particular subset of selected models greatly affects performance. We propose an effective selection mechanism, by probing the linear separability between real and fake samples in pretrained model embeddings, choosing the most accurate model, and progressively adding it to the discriminator ensemble. Interestingly, our method can improve GAN training in both limited data and large-scale settings. Given only 10k training samples, our FID on LSUN Cat matches the StyleGAN2 trained on 1.6M images. On the full dataset, our method improves FID by 1.5x to 2x on cat, church, and horse categories of LSUN.",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "arxiv",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "Feature Quantization Improves GAN Training",
+        "url": "http://arxiv.org/abs/2004.02088v2"
+      },
+      "approach_summary": "The instability in GAN training has been a long-standing problem despite remarkable research efforts. We identify that instability issues stem from difficulties of performing feature matching with mini-batch statistics, due to a fragile balance between the fixed target distribution and the progressively generated distribution. In this work, we propose Feature Quantization (FQ) for the discriminator, to embed both true and fake data samples into a shared discrete space. The quantized values of FQ are constructed as an evolving dictionary, which is consistent with feature statistics of the recent distribution history. Hence, FQ implicitly enables robust feature matching in a compact space. Our method can be easily plugged into existing GAN models, with little computational overhead in training. We apply FQ to 3 representative GAN models on 9 benchmarks: BigGAN for image generation, StyleGAN for face synthesis, and U-GAT-IT for unsupervised image-to-image translation. Extensive experimental results show that the proposed FQ-GAN can improve the FID scores of baseline methods by a large margin on a variety of tasks, achieving new state-of-the-art performance.",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "arxiv",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "On Convergence and Stability of GANs",
+        "url": "http://arxiv.org/abs/1705.07215v5"
+      },
+      "approach_summary": "We propose studying GAN training dynamics as regret minimization, which is in contrast to the popular view that there is consistent minimization of a divergence between real and generated distributions. We analyze the convergence of GAN training from this new point of view to understand why mode collapse happens. We hypothesize the existence of undesirable local equilibria in this non-convex game to be responsible for mode collapse. We observe that these local equilibria often exhibit sharp gradients of the discriminator function around some real data points. We demonstrate that these degenerate local equilibria can be avoided with a gradient penalty scheme called DRAGAN. We show that DRAGAN enables faster training, achieves improved stability with fewer mode collapses, and leads to generator networks with better modeling performance across a variety of architectures and objective functions.",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "arxiv",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "Training GANs with Optimism",
+        "url": "http://arxiv.org/abs/1711.00141v2"
+      },
+      "approach_summary": "We address the issue of limit cycling behavior in training Generative Adversarial Networks and propose the use of Optimistic Mirror Decent (OMD) for training Wasserstein GANs. Recent theoretical results have shown that optimistic mirror decent (OMD) can enjoy faster regret rates in the context of zero-sum games. WGANs is exactly a context of solving a zero-sum game with simultaneous no-regret dynamics. Moreover, we show that optimistic mirror decent addresses the limit cycling problem in training WGANs. We formally show that in the case of bi-linear zero-sum games the last iterate of OMD dynamics converges to an equilibrium, in contrast to GD dynamics which are bound to cycle. We also portray the huge qualitative difference between GD and OMD dynamics with toy examples, even when GD is modified with many adaptations proposed in the recent literature, such as gradient penalty or momentum. We apply OMD WGAN training to a bioinformatics problem of generating DNA sequences. We observe that models trained with OMD achieve consistently smaller KL divergence with respect to the true underlying distribution, than models trained with GD variants. Finally, we introduce a new algorithm, Optimistic Adam, which is an optimistic variant of Adam. We apply it to WGAN training on CIFAR10 and observe improved performance in terms of inception score as compared to Adam.",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "arxiv",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "QCD and High Energy Interactions: Moriond 2018 Theory Summary",
+        "url": "http://arxiv.org/abs/1806.04982v2"
+      },
+      "approach_summary": "The highlights of the theory developments presented at the Rencontres de Moriond 2018 on QCD and High Energy Interactions are summarised and put into perspective.",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "arxiv",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "Evaluation of an open-source implementation of the SRP-PHAT algorithm within the 2018 LOCATA challenge",
+        "url": "http://arxiv.org/abs/1812.05901v1"
+      },
+      "approach_summary": "This short paper presents an efficient, flexible implementation of the SRP-PHAT multichannel sound source localization method. The method is evaluated on the single-source tasks of the LOCATA 2018 development dataset, and an associated Matlab toolbox is made available online.",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "arxiv",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "Luminoso at SemEval-2018 Task 10: Distinguishing Attributes Using Text Corpora and Relational Knowledge",
+        "url": "http://arxiv.org/abs/1806.01733v2"
+      },
+      "approach_summary": "Luminoso participated in the SemEval 2018 task on \"Capturing Discriminative Attributes\" with a system based on ConceptNet, an open knowledge graph focused on general knowledge. In this paper, we describe how we trained a linear classifier on a small number of semantically-informed features to achieve an $F_1$ score of 0.7368 on the task, close to the task's high score of 0.75.",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "arxiv",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "The 2018 PIRM Challenge on Perceptual Image Super-resolution",
+        "url": "http://arxiv.org/abs/1809.07517v3"
+      },
+      "approach_summary": "This paper reports on the 2018 PIRM challenge on perceptual super-resolution (SR), held in conjunction with the Perceptual Image Restoration and Manipulation (PIRM) workshop at ECCV 2018. In contrast to previous SR challenges, our evaluation methodology jointly quantifies accuracy and perceptual quality, therefore enabling perceptual-driven methods to compete alongside algorithms that target PSNR maximization. Twenty-one participating teams introduced algorithms which well-improved upon the existing state-of-the-art methods in perceptual SR, as confirmed by a human opinion study. We also analyze popular image quality measures and draw conclusions regarding which of them correlates best with human opinion scores. We conclude with an analysis of the current trends in perceptual SR, as reflected from the leading submissions.",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "arxiv",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "UG18 at SemEval-2018 Task 1: Generating Additional Training Data for Predicting Emotion Intensity in Spanish",
+        "url": "http://arxiv.org/abs/1805.10824v1"
+      },
+      "approach_summary": "The present study describes our submission to SemEval 2018 Task 1: Affect in Tweets. Our Spanish-only approach aimed to demonstrate that it is beneficial to automatically generate additional training data by (i) translating training data from other languages and (ii) applying a semi-supervised learning method. We find strong support for both approaches, with those models outperforming our regular models in all subtasks. However, creating a stepwise ensemble of different models as opposed to simply averaging did not result in an increase in performance. We placed second (EI-Reg), second (EI-Oc), fourth (V-Reg) and fifth (V-Oc) in the four Spanish subtasks we participated in.",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "arxiv",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "Machine Learning for Health (ML4H) Workshop at NeurIPS 2018",
+        "url": "http://arxiv.org/abs/1811.07216v2"
+      },
+      "approach_summary": "This volume represents the accepted submissions from the Machine Learning for Health (ML4H) workshop at the conference on Neural Information Processing Systems (NeurIPS) 2018, held on December 8, 2018 in Montreal, Canada.",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "arxiv",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "Natural Language Inference over Interaction Space: ICLR 2018 Reproducibility Report",
+        "url": "http://arxiv.org/abs/1802.03198v1"
+      },
+      "approach_summary": "We have tried to reproduce the results of the paper \"Natural Language Inference over Interaction Space\" submitted to ICLR 2018 conference as part of the ICLR 2018 Reproducibility Challenge. Initially, we were not aware that the code was available, so we started to implement the network from scratch. We have evaluated our version of the model on Stanford NLI dataset and reached 86.38% accuracy on the test set, while the paper claims 88.0% accuracy. The main difference, as we understand it, comes from the optimizers and the way model selection is performed.",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "arxiv",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "An Efficient PTAS for Two-Strategy Anonymous Games",
+        "url": "http://arxiv.org/abs/0812.2277v1"
+      },
+      "approach_summary": "We present a novel polynomial time approximation scheme for two-strategy anonymous games, in which the players' utility functions, although potentially different, do not differentiate among the identities of the other players. Our algorithm computes an $eps$-approximate Nash equilibrium of an $n$-player 2-strategy anonymous game in time $poly(n) (1/eps)^{O(1/eps^2)}$, which significantly improves upon the running time $n^{O(1/eps^2)}$ required by the algorithm of Daskalakis & Papadimitriou, 2007. The improved running time is based on a new structural understanding of approximate Nash equilibria: We show that, for any $eps$, there exists an $eps$-approximate Nash equilibrium in which either only $O(1/eps^3)$ players randomize, or all players who randomize use the same mixed strategy. To show this result we employ tools from the literature on Stein's Method.",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "arxiv",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "ModelDiff: A Framework for Comparing Learning Algorithms",
+        "url": "http://arxiv.org/abs/2211.12491v1"
+      },
+      "approach_summary": "We study the problem of (learning) algorithm comparison, where the goal is to find differences between models trained with two different learning algorithms. We begin by formalizing this goal as one of finding distinguishing feature transformations, i.e., input transformations that change the predictions of models trained with one learning algorithm but not the other. We then present ModelDiff, a method that leverages the datamodels framework (Ilyas et al., 2022) to compare learning algorithms based on how they use their training data. We demonstrate ModelDiff through three case studies, comparing models trained with/without data augmentation, with/without pre-training, and with different SGD hyperparameters. Our code is available at https://github.com/MadryLab/modeldiff .",
       "strengths": [],
       "weaknesses": [],
       "research_gaps": []
@@ -197,14 +275,14 @@
       "research_gaps": []
     },
     {
-      "source": "search",
+      "source": "arxiv",
       "citation": {
         "author": "",
         "year": "",
-        "title": "[PDF] Which Training Methods for GANs do actually Converge ...",
-        "url": "http://proceedings.mlr.press/v80/mescheder18a/mescheder18a-supp.pdf"
+        "title": "The Numerics of GANs",
+        "url": "https://arxiv.org/abs/1705.10461"
       },
-      "approach_summary": "[PDF] Which Training Methods for GANs do actually Converge ...",
+      "approach_summary": "In this paper, we analyze the numerics of common algorithms for training Generative Adversarial Networks (GANs). | Subjects: | Machine Learning (cs.LG) |. | Cite as: | arXiv:1705.10461 [cs.LG] |. |  | (or  arXiv:1705.10461v3 [cs.LG] for this version) |. **[v3]** Mon, 11 Jun 2018 13:12:41 UTC (4,917 KB). View a PDF of the paper titled The Numerics of GANs, by Lars Mescheder and 2 other authors. ### References & Citations. ## BibTeX formatted citation. # Bibliographic and Citation Tools. CatalyzeX Code Finder for Papers *(What is CatalyzeX?)*. Papers with Code *(What is Papers with Code?)*. # Recommenders and Search Tools. arXivLabs is a framework that allows collaborators to develop and share new arXiv features directly on our website. Have an idea for a project that will add value for arXiv's community? Which authors of this paper are endorsers?",
       "strengths": [],
       "weaknesses": [],
       "research_gaps": []
@@ -214,10 +292,23 @@
       "citation": {
         "author": "",
         "year": "",
-        "title": "[PDF] The Numerics of GANs - NIPS",
-        "url": "http://papers.neurips.cc/paper/6779-the-numerics-of-gans.pdf"
+        "title": "Numerics of GANs: Convergence and Stability - Emergent Mind",
+        "url": "https://www.emergentmind.com/articles/1705.10461"
       },
-      "approach_summary": "[PDF] The Numerics of GANs - NIPS",
+      "approach_summary": "** In this paper, we analyze the numerics of common algorithms for training Generative Adversarial Networks (GANs). * The paper identifies critical numerical issues in GAN training by analyzing eigenvalue behaviors that hinder convergence. * The paper proposes a consensus optimization algorithm that regularizes the gradient norm to stabilize training across varied GAN architectures. This paper focuses on the computational challenges involved in training Generative Adversarial Networks (GANs), particularly addressing the convergence difficulties of existing algorithms. By treating GAN training as a problem of finding Nash equilibria in smooth, non-convex two-player games, the authors identify two primary issues that hinder convergence: eigenvalues of the Jacobian of the gradient vector field with zero real part, and eigenvalues with large imaginary parts. The paper introduces a novel algorithm designed to mitigate these issues, leading to improved stability and performance across various GAN architectures, including those notoriously difficult to train. 1. **Numerical Analysis of GANs:** The paper explores the gradient vector fields associated with GANs, using the formalism of smooth two-player games.",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "search",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "GANs are Broken in More than One Way: The Numerics of GANs",
+        "url": "https://www.inference.vc/my-notes-on-the-numerics-of-gans/"
+      },
+      "approach_summary": "GANs are Broken in More than One Way: The Numerics of GANs",
       "strengths": [],
       "weaknesses": [],
       "research_gaps": []
@@ -240,6 +331,58 @@
       "citation": {
         "author": "",
         "year": "",
+        "title": "(PDF) The Numerics of GANs - ResearchGate",
+        "url": "https://www.researchgate.net/publication/317241056_The_Numerics_of_GANs"
+      },
+      "approach_summary": "(PDF) The Numerics of GANs - ResearchGate",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "search",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "[PDF] The Numerics of GANs",
+        "url": "http://papers.neurips.cc/paper/6779-the-numerics-of-gans.pdf"
+      },
+      "approach_summary": "[PDF] The Numerics of GANs",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "search",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "[PDF] Which Training Methods for GANs do actually Converge ...",
+        "url": "https://www.cvlibs.net/publications/Mescheder2018ICML_supplementary.pdf"
+      },
+      "approach_summary": "[PDF] Which Training Methods for GANs do actually Converge ...",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "search",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "The numerics of GANs",
+        "url": "https://dl.acm.org/doi/pdf/10.5555/3294771.3294945"
+      },
+      "approach_summary": "The numerics of GANs",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "search",
+      "citation": {
+        "author": "",
+        "year": "",
         "title": "[PDF] Towards a Better Understanding and Regularization of GAN ...",
         "url": "http://auai.org/uai2019/proceedings/papers/91.pdf"
       },
@@ -249,40 +392,14 @@
       "research_gaps": []
     },
     {
-      "source": "search",
+      "source": "arxiv",
       "citation": {
         "author": "",
         "year": "",
-        "title": "SARAH McLACHLAN",
-        "url": "https://www.sarahmclachlan.com/videos/"
+        "title": "Towards a Better Understanding and Regularization of GAN Training Dynamics",
+        "url": "http://arxiv.org/abs/1806.09235v2"
       },
-      "approach_summary": "SARAH McLACHLAN",
-      "strengths": [],
-      "weaknesses": [],
-      "research_gaps": []
-    },
-    {
-      "source": "search",
-      "citation": {
-        "author": "",
-        "year": "",
-        "title": "‘FUMBLING TOWARDS ECSTASY’ 30TH ANNIVERSARY TOUR ANNOUNCED",
-        "url": "https://www.sarahmclachlan.com/news/fumbling-towards-ecstasy-30th-anniversary-tour-announced/"
-      },
-      "approach_summary": "‘FUMBLING TOWARDS ECSTASY’ 30TH ANNIVERSARY TOUR ANNOUNCED",
-      "strengths": [],
-      "weaknesses": [],
-      "research_gaps": []
-    },
-    {
-      "source": "search",
-      "citation": {
-        "author": "",
-        "year": "",
-        "title": "SarahMcLachlan.com | The official website of Sarah McLachlan",
-        "url": "https://www.sarahmclachlan.com/"
-      },
-      "approach_summary": "SarahMcLachlan.com | The official website of Sarah McLachlan",
+      "approach_summary": "Generative adversarial networks (GANs) are notoriously difficult to train and the reasons underlying their (non-)convergence behaviors are still not completely understood. By first considering a simple yet representative GAN example, we mathematically analyze its local convergence behavior in a non-asymptotic way. Furthermore, the analysis is extended to general GANs under certain assumptions. We find that in order to ensure a good convergence rate, two factors of the Jacobian in the GAN training dynamics should be simultaneously avoided, which are (i) the Phase Factor, i.e., the Jacobian has complex eigenvalues with a large imaginary-to-real ratio, and (ii) the Conditioning Factor, i.e., the Jacobian is ill-conditioned. Previous methods of regularizing the Jacobian can only alleviate one of these two factors, while making the other more severe. Thus we propose a new JAcobian REgularization (JARE) for GANs, which simultaneously addresses both factors by construction. Finally, we conduct experiments that confirm our theoretical analysis and demonstrate the advantages of JARE over previous methods in stabilizing GANs.",
       "strengths": [],
       "weaknesses": [],
       "research_gaps": []
@@ -292,88 +409,153 @@
       "citation": {
         "author": "",
         "year": "",
-        "title": "GANs Trained by a Two Time-Scale Update Rule Converge to a ...",
-        "url": "https://arxiv.org/abs/1706.08500"
+        "title": "A Parametric and Feasibility Study for Data Sampling of the Dynamic Mode Decomposition--Range, Resolution, and Universal Convergence States",
+        "url": "http://arxiv.org/abs/2110.06573v2"
       },
-      "approach_summary": "GANs Trained by a Two Time-Scale Update Rule Converge to a ...",
+      "approach_summary": "Scientific research and engineering practice often require the modeling and decomposition of nonlinear systems. The Dynamic Mode Decomposition (DMD) is a novel Koopman-based technique that effectively dissects high-dimensional nonlinear systems into periodically distinct constituents on reduced-order subspaces. As a novel mathematical hatchling, the DMD bears vast potentials yet an equal degree of unknown. This serial effort investigates the nuances of DMD sampling with an engineering-oriented emphasis. This Part I aimed at elucidating how sampling range and resolution affect the convergence of DMD modes. We employed the most classical nonlinear system in fluid mechanics as the test subject--the turbulent free-shear flow over a prism--for optimal pertinency. We numerically simulated the flow by the dynamic-stress Large-Eddies Simulation with Near-Wall Resolution. With the large-quantity, high-fidelity data, we parametrized and identified four global convergence states: Initialization, Transition, Stabilization, and Divergence with increasing sampling range. Results showed that the Stabilization is the optimal state for modal convergence, in which DMD output becomes independent of the sampling range. The Initialization state also yields sufficient accuracy for most system reconstruction tasks. Moreover, defying popular beliefs, over-sampling causes algorithmic instability: as the temporal dimension, n, approaches and transcends the spatial dimension, m (i.e., m < n), the output diverges and becomes meaningless. Additionally, the convergence of the sampling resolution depends on the mode-specific dynamics, such that the resolution of 15 frames per cycle for target activities is suggested for most engineering implementations. Finally, a bi-parametric study revealed that the convergence of the sampling range and resolution are mutually independent.",
       "strengths": [],
       "weaknesses": [],
       "research_gaps": []
     },
     {
-      "source": "search",
+      "source": "arxiv",
       "citation": {
         "author": "",
         "year": "",
-        "title": "[PDF] GANs Trained by a Two Time-Scale Update Rule Converge to a ...",
-        "url": "https://www.bioinf.jku.at/people/klambauer/1706.08500v4.pdf"
+        "title": "StoryGAN: A Sequential Conditional GAN for Story Visualization",
+        "url": "http://arxiv.org/abs/1812.02784v2"
       },
-      "approach_summary": "[PDF] GANs Trained by a Two Time-Scale Update Rule Converge to a ...",
+      "approach_summary": "We propose a new task, called Story Visualization. Given a multi-sentence paragraph, the story is visualized by generating a sequence of images, one for each sentence. In contrast to video generation, story visualization focuses less on the continuity in generated images (frames), but more on the global consistency across dynamic scenes and characters -- a challenge that has not been addressed by any single-image or video generation methods. We therefore propose a new story-to-image-sequence generation model, StoryGAN, based on the sequential conditional GAN framework. Our model is unique in that it consists of a deep Context Encoder that dynamically tracks the story flow, and two discriminators at the story and image levels, to enhance the image quality and the consistency of the generated sequences. To evaluate the model, we modified existing datasets to create the CLEVR-SV and Pororo-SV datasets. Empirically, StoryGAN outperforms state-of-the-art models in image quality, contextual consistency metrics, and human evaluation.",
       "strengths": [],
       "weaknesses": [],
       "research_gaps": []
     },
     {
-      "source": "search",
+      "source": "arxiv",
       "citation": {
         "author": "",
         "year": "",
-        "title": "Two Time-Scale Update Rule (TTUR) - ApX Machine Learning",
-        "url": "https://apxml.com/courses/synthetic-data-gans-diffusion/chapter-3-gan-training-stability-optimization/gan-ttur-optimization"
+        "title": "ActFormer: A GAN-based Transformer towards General Action-Conditioned 3D Human Motion Generation",
+        "url": "http://arxiv.org/abs/2203.07706v2"
       },
-      "approach_summary": "Two Time-Scale Update Rule (TTUR) - ApX Machine Learning",
+      "approach_summary": "We present a GAN-based Transformer for general action-conditioned 3D human motion generation, including not only single-person actions but also multi-person interactive actions. Our approach consists of a powerful Action-conditioned motion TransFormer (ActFormer) under a GAN training scheme, equipped with a Gaussian Process latent prior. Such a design combines the strong spatio-temporal representation capacity of Transformer, superiority in generative modeling of GAN, and inherent temporal correlations from the latent prior. Furthermore, ActFormer can be naturally extended to multi-person motions by alternately modeling temporal correlations and human interactions with Transformer encoders. To further facilitate research on multi-person motion generation, we introduce a new synthetic dataset of complex multi-person combat behaviors. Extensive experiments on NTU-13, NTU RGB+D 120, BABEL and the proposed combat dataset show that our method can adapt to various human motion representations and achieve superior performance over the state-of-the-art methods on both single-person and multi-person motion generation tasks, demonstrating a promising step towards a general human motion generator.",
       "strengths": [],
       "weaknesses": [],
       "research_gaps": []
     },
     {
-      "source": "search",
+      "source": "arxiv",
       "citation": {
         "author": "",
         "year": "",
-        "title": "Reviews: GANs Trained by a Two Time-Scale Update Rule ..",
-        "url": "https://proceedings.neurips.cc/paper/2017/file/8a1d694707eb0fefe65871369074926d-Reviews.html"
+        "title": "Evaluation of the Spatio-Temporal features and GAN for Micro-expression Recognition System",
+        "url": "http://arxiv.org/abs/1904.01748v1"
       },
-      "approach_summary": "Reviews: GANs Trained by a Two Time-Scale Update Rule ... - NIPS",
+      "approach_summary": "Owing to the development and advancement of artificial intelligence, numerous works were established in the human facial expression recognition system. Meanwhile, the detection and classification of micro-expressions are attracting attentions from various research communities in the recent few years. In this paper, we first review the processes of a conventional optical-flow-based recognition system, which comprised of facial landmarks annotations, optical flow guided images computation, features extraction and emotion class categorization. Secondly, a few approaches have been proposed to improve the feature extraction part, such as exploiting GAN to generate more image samples. Particularly, several variations of optical flow are computed in order to generate optimal images to lead to high recognition accuracy. Next, GAN, a combination of Generator and Discriminator, is utilized to generate new \"fake\" images to increase the sample size. Thirdly, a modified state-of-the-art Convolutional neural networks is proposed. To verify the effectiveness of the the proposed method, the results are evaluated on spontaneous micro-expression databases, namely SMIC, CASME II and SAMM. Both the F1-score and accuracy performance metrics are reported in this paper.",
       "strengths": [],
       "weaknesses": [],
       "research_gaps": []
     },
     {
-      "source": "search",
+      "source": "arxiv",
       "citation": {
         "author": "",
         "year": "",
-        "title": "[PDF] GANs Trained by a Two Time-Scale Update Rule Converge to ...",
-        "url": "https://www.semanticscholar.org/paper/GANs-Trained-by-a-Two-Time-Scale-Update-Rule-to-a-Heusel-Ramsauer/56f5005c4be6f816f6f43795cc4825d798cd53ef"
+        "title": "Symplectic forms and surfaces of negative square",
+        "url": "http://arxiv.org/abs/math/0601540v1"
       },
-      "approach_summary": "[PDF] GANs Trained by a Two Time-Scale Update Rule Converge to ...",
+      "approach_summary": "We introduce an analogue of the inflation technique of Lalonde-McDuff, allowing us to obtain new symplectic forms from symplectic surfaces of negative self-intersection in symplectic four-manifolds. We consider the implications of this construction for the symplectic cones of Kähler surfaces, proving along the way a result which can be used to simplify the intersections of distinct pseudoholomorphic curves via a perturbation.",
       "strengths": [],
       "weaknesses": [],
       "research_gaps": []
     },
     {
-      "source": "search",
+      "source": "arxiv",
       "citation": {
         "author": "",
         "year": "",
-        "title": "(PDF) GANs Trained by a Two Time-Scale Update Rule Converge to ...",
-        "url": "https://www.researchgate.net/publication/321796129_GANs_Trained_by_a_Two_Time-Scale_Update_Rule_Converge_to_a_Local_Nash_Equilibrium"
+        "title": "Translated points for contactomorphisms of prequantization spaces over monotone symplectic toric manifolds",
+        "url": "http://arxiv.org/abs/1811.09984v4"
       },
-      "approach_summary": "(PDF) GANs Trained by a Two Time-Scale Update Rule Converge to ...",
+      "approach_summary": "We prove a version of Sandon's conjecture on the number of translated points of contactomorphisms for the case of prequantization bundles over certain closed monotone symplectic toric manifolds. Namely we show that any contactomorphism of such a prequantization bundle lying in the identity component of the contactomorphism group possesses at least $N$ translated points, where $N$ is the minimal Chern number of the symplectic toric manifold. The proof relies on the theory of generating functions coupled with equivariant cohomology, whereby we adapt Givental's approach to the Arnold conjecture for integral symplectic toric manifolds to the context of prequantization bundles.",
       "strengths": [],
       "weaknesses": [],
       "research_gaps": []
     },
     {
-      "source": "search",
+      "source": "arxiv",
       "citation": {
         "author": "",
         "year": "",
-        "title": "Brief Review — GANs Trained by a Two Time-Scale Update Rule ...",
-        "url": "https://sh-tsang.medium.com/brief-review-gans-trained-by-a-two-time-scale-update-rule-converge-to-a-local-nash-equilibrium-73635435538"
+        "title": "The closure of the symplectic cone of elliptic surfaces",
+        "url": "http://arxiv.org/abs/1210.1135v2"
       },
-      "approach_summary": "Brief Review — GANs Trained by a Two Time-Scale Update Rule ...",
+      "approach_summary": "The symplectic cone of a closed oriented 4-manifold is the set of cohomology classes represented by symplectic forms. A well-known conjecture describes this cone for every minimal Kaehler surface. We consider the case of the elliptic surfaces E(n) and focus on a slightly weaker conjecture for the closure of the symplectic cone. We prove this conjecture in the case of the spin surfaces E(2m) using inflation and the action of self-diffeomorphisms of the elliptic surface. An additional obstruction appears in the non-spin case.",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "arxiv",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "Symplectic reduction of quasi-morphisms and quasi-states",
+        "url": "http://arxiv.org/abs/1007.4036v2"
+      },
+      "approach_summary": "We prove that quasi-morphisms and quasi-states on a closed integral symplectic manifold descend under symplectic reduction to symplectic hyperplane sections. Along the way we show that quasi-morphisms that arise from spectral invariants are the Calabi homomorphism when restricted to Hamiltonians supported on stably displaceable sets.",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "arxiv",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "The Symplectic Geometry of Penrose Rhombus Tilings",
+        "url": "http://arxiv.org/abs/0711.1642v2"
+      },
+      "approach_summary": "The purpose of this article is to view Penrose rhombus tilings from the perspective of symplectic geometry. We show that each thick rhombus in such a tiling can be naturally associated to a highly singular 4-dimensional compact symplectic space, while each thin rhombus can be associated to another such space; both spaces are invariant under the Hamiltonian action of a 2-dimensional quasitorus, and the images of the corresponding moment mappings give the rhombuses back. These two spaces are diffeomorphic but not symplectomorphic.",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "arxiv",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "Tamed Symplectic forms and SKT metrics",
+        "url": "http://arxiv.org/abs/1002.3099v3"
+      },
+      "approach_summary": "Symplectic forms taming complex structures on compact manifolds are strictly related to Hermitian metrics having the fundamental form $\\partial \\bar \\partial $-closed, i.e. to strong Kähler with torsion (${\\rm SKT}$) metrics. It is still an open problem to exhibit a compact example of a complex manifold having a tamed symplectic structure but non-admitting Kähler structures. We show some negative results for the existence of symplectic forms taming complex structures on compact quotients of Lie groups by discrete subgroups. In particular, we prove that if $M$ is a nilmanifold (not a torus) endowed with an invariant complex structure $J$, then $(M, J)$ does not admit any symplectic form taming $J$. Moreover, we show that if a nilmanifold $M$ endowed with an invariant complex structure $J$ admits an ${\\rm SKT}$ metric, then $M$ is at most 2-step. As a consequence we classify 8-dimensional nilmanifolds endowed with an invariant complex structure admitting an SKT metric.",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "arxiv",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "The Invariant Symplectic Action and Decay for Vortices",
+        "url": "http://arxiv.org/abs/math/0611768v5"
+      },
+      "approach_summary": "The (local) invariant symplectic action functional $\\A$ is associated to a Hamiltonian action of a compact connected Lie group $\\G$ on a symplectic manifold $(M,ω)$, endowed with a $\\G$-invariant Riemannian metric $<\\cdot,\\cdot>_M$. It is defined on the set of pairs of loops $(x,ξ):S^1\\to M\\x\\Lie\\G$ for which $x$ satisfies some admissibility condition. I prove a sharp isoperimetric inequality for $\\A$ if $<\\cdot,\\cdot>_M$ is induced by some $ω$-compatible and $\\G$-invariant almost complex structure $J$, and, as an application, an optimal result about the decay at $\\infty$ of symplectic vortices on the half-cylinder $[0,\\infty)\\x S^1$.",
+      "strengths": [],
+      "weaknesses": [],
+      "research_gaps": []
+    },
+    {
+      "source": "arxiv",
+      "citation": {
+        "author": "",
+        "year": "",
+        "title": "Nonisotopic Symplectic Tori in the Fiber Class of Elliptic Surfaces",
+        "url": "http://arxiv.org/abs/math/0402001v1"
+      },
+      "approach_summary": "The purpose of this note is to present a construction of an infinite family of symplectic tori T_{p} representing an arbitrary multiple of the homology class of the fiber of an elliptic surface E(n), for n > 2, such that, for i \\neq j, there is no orientation-preserving diffeomorphism between (E(n),T_{i}) and (E(n),T_{j}). In particular, these tori are mutually nonisotopic. This complements previous results of Fintushel and Stern, showing in particular the existence of such phenomenon for a primitive class.",
       "strengths": [],
       "weaknesses": [],
       "research_gaps": []

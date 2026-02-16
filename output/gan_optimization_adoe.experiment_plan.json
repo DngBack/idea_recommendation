@@ -1,0 +1,60 @@
+{
+  "proposal_ref": {
+    "name": "gradient_disagreement_is_a_reliable_rotation_proxy",
+    "title": "A cheap proxy based on consecutive-step gradient disagreement (e.g., 1−cos(g_t,g..."
+  },
+  "metrics": [
+    {
+      "name": "primary_metric",
+      "description": "Primary metric from proposal.",
+      "primary": true
+    },
+    {
+      "name": "secondary_metric",
+      "description": "Secondary metrics.",
+      "primary": false
+    }
+  ],
+  "baselines": [
+    {
+      "name": "baseline",
+      "description": "To be specified from literature.",
+      "source": "",
+      "citation": ""
+    }
+  ],
+  "datasets": [
+    {
+      "name": "dataset",
+      "description": "To be specified.",
+      "size_or_source": "",
+      "license_or_access": ""
+    }
+  ],
+  "implementation_steps": [
+    {
+      "order": 1,
+      "step": "Setup",
+      "description": "Environment and data setup.",
+      "deliverables": "Code and data ready."
+    },
+    {
+      "order": 2,
+      "step": "Baseline",
+      "description": "Implement or run baselines.",
+      "deliverables": "Baseline results."
+    },
+    {
+      "order": 3,
+      "step": "Main experiments",
+      "description": "Run main experiments.",
+      "deliverables": "Results and figures."
+    }
+  ],
+  "min_config": {
+    "hardware": "Single GPU, 24GB VRAM",
+    "min_data": "Standard benchmark or 10k+ samples",
+    "framework": "PyTorch 2.0",
+    "estimated_time": "2-4 weeks for main experiments"
+  }
+}

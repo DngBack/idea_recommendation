@@ -1,7 +1,7 @@
 {
-  "Name": "cheap_rotation_proxy_matches_jvp_rotation_measure",
-  "Title": "A proxy based on successive stochastic gradients (e.g., negative cosine similari...",
-  "Short Hypothesis": "A proxy based on successive stochastic gradients (e.g., negative cosine similarity between consecutive game gradients, or disagreement between lookahead and current gradients) will correlate strongly with a more direct but expensive rotation diagnostic (e.g., skew-symmetric component magnitude estimated via Jacobian–vector products) across training regimes and datasets.",
+  "Name": "gradient_disagreement_is_a_reliable_rotation_proxy",
+  "Title": "A cheap proxy based on consecutive-step gradient disagreement (e.g., 1−cos(g_t,g...",
+  "Short Hypothesis": "A cheap proxy based on consecutive-step gradient disagreement (e.g., 1−cos(g_t,g_{t-1}) or sign-flip rate) will positively correlate with Jacobian-imaginary-dominance/rotation indicators (approximated via occasional Jacobian-vector products) and can be used to trigger adaptive damping that improves stability without degrading final FID.",
   "Related Work": "Auto-finalized when reflection rounds were exhausted. Synthesis based on gathered search results.",
   "Abstract": "This direction was auto-finalized when reflection rounds were exhausted. Please expand the abstract and experiments from the chosen hypothesis and literature review.",
   "Experiments": "Proposed experiments to be specified: replicate baseline, ablations, and main comparison. (Auto-finalized.)",

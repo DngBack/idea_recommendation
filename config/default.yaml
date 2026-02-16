@@ -52,8 +52,8 @@ system_prompt_override: ""
 pipeline_mode: false
 research_pipeline:
   # Literature review: number of rounds; each round = one LLM turn (search or finalize). Use 12+ for a detailed review with many searches.
-  literature_reflections: 2
-  direction_reflections: 2
+  literature_reflections: 3
+  direction_reflections: 3
   max_hypotheses: 1
   skip_feasibility: false
   skip_critique: false

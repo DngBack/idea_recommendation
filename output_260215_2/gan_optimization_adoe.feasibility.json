@@ -1,0 +1,31 @@
+{
+  "chosen_hypothesis_name": "cheap_rotation_proxy_matches_jvp_rotation_measure",
+  "rationale": "This hypothesis is exceptionally clear and falsifiable: it reduces to measuring agreement (e.g., correlation/rank correlation) between cheap, optimizer-accessible signals and a more direct rotation diagnostic estimated via JVPs. It is comparatively low-risk and resource-feasible because it can be validated on a small set of standard GAN setups/datasets without extensive hyperparameter sweeps, while still producing broadly useful artifacts (a practical diagnostic) that can underpin a follow-on adaptive optimizer paper. Even partial success (identifying when/where proxies fail) is publishable as it directly addresses a widely felt measurement gap for game dynamics in large neural GANs.",
+  "feasibility_scores": [
+    {
+      "hypothesis_name": "adaptive_damping_reduces_gan_limit_cycles",
+      "score_1_to_5": 3,
+      "brief_reason": "End-to-end optimizer claim needs careful metric design for “cycling,” multiple strong baselines, and many seeds to make failure-rate improvements convincing; feasible but more engineering- and compute-heavy with higher confounding risk."
+    },
+    {
+      "hypothesis_name": "cheap_rotation_proxy_matches_jvp_rotation_measure",
+      "score_1_to_5": 5,
+      "brief_reason": "Directly testable with straightforward logging plus occasional JVP-based diagnostics; modest compute, clear statistical evaluation, and valuable regardless of whether the proxy fully succeeds."
+    },
+    {
+      "hypothesis_name": "adoe_reduces_tturratio_sensitivity",
+      "score_1_to_5": 3,
+      "brief_reason": "Requires large TTUR/batch-size grids and many seeds to robustly claim “flatter” surfaces; feasible but expensive and sensitive to implementation/benchmark choices."
+    },
+    {
+      "hypothesis_name": "adaptive_lambda_avoids_overdamping_and_improves_steps_to_target",
+      "score_1_to_5": 4,
+      "brief_reason": "Well-defined steps-to-target/wall-clock evaluation, but needs fair wall-clock benchmarking and a credible fixed-λ sweep (potentially costly) to support the ‘better than any fixed λ’ claim."
+    },
+    {
+      "hypothesis_name": "variance_reduction_and_rotation_control_are_complementary",
+      "score_1_to_5": 2,
+      "brief_reason": "Combines two complex interventions with many design degrees of freedom and strong baselines; higher risk of negative/ambiguous results and substantially more implementation and tuning burden."
+    }
+  ]
+}
